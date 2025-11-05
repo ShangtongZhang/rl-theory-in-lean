@@ -1,3 +1,7 @@
+/-
+SPDX-License-Identifier: MIT
+SPDX-FileCopyrightText: 2025 Shangtong Zhang shangtong.zhang.cs@gmail.com
+-/
 import Mathlib.Data.Matrix.Mul
 import Mathlib.Tactic.Linarith.Frontend
 import Mathlib.Tactic.Ring.RingNF

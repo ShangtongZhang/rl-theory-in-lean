@@ -1,3 +1,7 @@
+/-
+SPDX-License-Identifier: MIT
+SPDX-FileCopyrightText: 2025 Shangtong Zhang shangtong.zhang.cs@gmail.com
+-/
 import Mathlib.Data.Int.GCD
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Defs

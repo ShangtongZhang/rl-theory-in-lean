@@ -1,3 +1,7 @@
+/-
+SPDX-License-Identifier: MIT
+SPDX-FileCopyrightText: 2025 Shangtong Zhang shangtong.zhang.cs@gmail.com
+-/
 import Mathlib.MeasureTheory.Group.Arithmetic
 import Mathlib.Analysis.Normed.Lp.MeasurableSpace
 

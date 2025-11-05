@@ -1,3 +1,7 @@
+/-
+SPDX-License-Identifier: MIT
+SPDX-FileCopyrightText: 2025 Shangtong Zhang shangtong.zhang.cs@gmail.com
+-/
 import Mathlib.Algebra.Order.Ring.Unbundled.Basic
 import Mathlib.Data.NNReal.Defs
 import Mathlib.Data.Real.Sqrt

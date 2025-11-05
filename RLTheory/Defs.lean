@@ -1,3 +1,7 @@
+/-
+SPDX-License-Identifier: MIT
+SPDX-FileCopyrightText: 2025 Shangtong Zhang shangtong.zhang.cs@gmail.com
+-/
 import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.MeasureTheory.MeasurableSpace.Defs
 import Mathlib.MeasureTheory.Integral.Bochner.Basic
