@@ -2,7 +2,8 @@
 
 ## Installation
 
-See [https://lean-lang.org/install/](https://lean-lang.org/install/) for a detailed tutorial on setting up Lean. Confirm that Lean is set up by ```lake --version```.
+See [https://lean-lang.org/install/](https://lean-lang.org/install/) for a detailed tutorial on setting up Lean.  
+Confirm that Lean is set up by ```lake --version```.
 
 ```
 git clone git@github.com:ShangtongZhang/rl-theory-in-lean.git RLTheory
