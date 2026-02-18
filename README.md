@@ -2,13 +2,16 @@
 
 ## Installation
 
-It is recommended to use this project with the Lean 4 extension of VSCode. See [https://lean-lang.org/install/](https://lean-lang.org/install/) for a detailed tutorial on setting up Lean.
+See [https://lean-lang.org/install/](https://lean-lang.org/install/) for a detailed tutorial on setting up Lean. Confirm that Lean is set up by ```lake --version```.
 
-- Clone this project to a local folder
-- Open the folder inside VSCode
-- (Optional) Run ```lake exe cache get``` in terminal to significantly reduce the compilation time
-- Open `RLTheory.lean` and select `Restart Server` and `Restart File` in the Lean 4 extension
-- The project should then compile
+```
+git clone git@github.com:ShangtongZhang/rl-theory-in-lean.git RLTheory
+cd RLTheory
+lake exe cache get
+lake build
+```
+
+It is recommended to use this project with the Lean 4 extension of VSCode. 
 
 ## Paper
 [Towards Formalizing Reinforcement Learning Theory](https://arxiv.org/abs/2511.03618)  
