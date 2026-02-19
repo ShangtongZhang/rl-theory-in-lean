@@ -218,7 +218,7 @@ theorem ae_tendsto_zero_of_almost_supermartingale
       simp [W, g]
       apply StronglyMeasurable.sub
       apply StronglyMeasurable.neg
-      exact hAdapt n
+      exact (hAdapt n).stronglyMeasurable
       apply stronglyMeasurable_const
 
     have hW : ∀ n, W n + T n • f n ≤ᶠ[ae μ] μ[W (n + 1)|ℱ n] := by
@@ -280,7 +280,7 @@ theorem ae_tendsto_zero_of_almost_supermartingale
         unfold g
         apply StronglyMeasurable.sub
         apply StronglyMeasurable.neg
-        exact hAdapt n
+        exact (hAdapt n).stronglyMeasurable
         apply stronglyMeasurable_const
       case hle =>
         intro i

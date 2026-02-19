@@ -14,22 +14,6 @@ namespace Matrix
 
 variable {m n β: Type*} [Fintype m]
 
-lemma sum_vecMul {s : Finset β} (f : β → (m → ℝ)) (A : Matrix m n ℝ)
-  : (∑ x ∈ s, f x) ᵥ* A = ∑ x ∈ s, (f x) ᵥ* A := by
-  funext j
-  simp [Matrix.vecMul, dotProduct, Finset.sum_mul]
-  rw [Finset.sum_comm]
-
-lemma vecMul_smul' (v : m → ℝ) (c : ℝ) (A : Matrix m n ℝ) :
-  v ᵥ* (c • A) = c • (v ᵥ* A) := by
-  funext j
-  simp [Matrix.vecMul, Matrix.smul_apply, dotProduct, Finset.mul_sum, mul_left_comm]
-
-lemma smul_vecMul (c : ℝ) (v : m → ℝ) (A : Matrix m n ℝ) :
-  (c • v) ᵥ* A = c • (v ᵥ* A) := by
-  funext j
-  simp [Matrix.vecMul, dotProduct, Finset.mul_sum, mul_comm, mul_left_comm]
-
 omit [Fintype m] in
 lemma mul_diagonal_mulVec
   [DecidableEq n] [Fintype n] (d : n → ℝ) (x : n → ℝ) (A : Matrix m n ℝ) :

@@ -6,6 +6,7 @@ import Mathlib.Probability.ProbabilityMassFunction.Basic
 import Mathlib.MeasureTheory.MeasurableSpace.Instances
 import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
 import Mathlib.MeasureTheory.MeasurableSpace.Defs
+import Mathlib.Probability.Kernel.Composition.IntegralCompProd
 
 import RLTheory.Defs
 import RLTheory.Probability.MarkovChain.Defs
@@ -71,53 +72,53 @@ lemma kernel_apply_eq_mat_apply
   simp [kernel_mat]
 
 lemma integral_fintype_kernel_iter
-  {α : Type*} [NormedAddCommGroup α] [NormedSpace ℝ α] [CompleteSpace α] [DecidableEq S] {s : S}
-  (M : HomMarkovChainSpec S) (n : ℕ) (f : S → α):
-  ∫ s, f s ∂ M.kernel.iter n s = ∑ s', ((kernel_mat M) ^ n) s s' • f s' := by
-  have := M.markov_kernel
-  rw [integral_fintype]
-  apply sum_congr rfl
-  intro s' hs'
-  apply congr ?_ rfl
-  apply congr rfl
-  simp [Measure.real_def]
-  have : ∀ s s',
-    (((M.kernel.iter n) s) {s'}).toReal = (kernel_mat M ^ n) s s' := by
-    induction' n with n ih
-    case zero =>
-      intro s s'
-      simp [iter, Kernel.id_apply, Matrix.one_apply]
-      by_cases h : s = s'
-      case pos => simp [h]
-      case neg => simp [h]
-    case succ =>
-      intro s s'
-      rw [iter, Kernel.comp_apply, bind_apply]
-      let f := fun s => ((M.kernel.iter n) s) {s'}
-      let f' := fun s => (f s).toReal
-      have : ∀ s, f s = ENNReal.ofReal (f' s) := by simp [f, f']
-      simp [f] at this
-      conv_lhs =>
-        congr
-        apply lintegral_congr this
-      rw [←integral_eq_lintegral_of_nonneg_ae, integral_fintype, add_comm,
-        pow_add]
-      simp_rw [Measure.real_def, kernel_apply_eq_mat_apply, f', f]
-      rw [Matrix.mul_apply]
-      apply sum_congr rfl
-      intro l hl
-      simp [ih l s']
-      simp
-      apply Eventually.of_forall
-      intro s
-      simp [f']
-      apply Measurable.aestronglyMeasurable
-      apply measurable_of_countable
-      apply MeasurableSingletonClass.measurableSet_singleton
-      apply Measurable.aemeasurable
-      apply Kernel.measurable
-  apply this
-  simp
+  {α : Type*} [NormedAddCommGroup α] [NormedSpace ℝ α] [CompleteSpace α] [DecidableEq S]
+  (M : HomMarkovChainSpec S) (n : ℕ) (f : S → α) (s : S):
+  ∫ s', f s' ∂ M.kernel.iter n s = ∑ s', ((kernel_mat M) ^ n) s s' • f s' := by
+  induction n generalizing s with
+  | zero =>
+    simp only [pow_zero, Matrix.one_apply]
+    have hiter0 : (M.kernel.iter 0) s = Measure.dirac s := Kernel.id_apply s
+    rw [hiter0, integral_dirac]
+    symm
+    simp only [ite_smul, one_smul, zero_smul]
+    rw [sum_ite_eq]
+    simp
+  | succ n ih =>
+    simp only [pow_succ']
+    -- iter (n+1) = (iter n).comp κ = iter n ∘ₖ κ
+    -- M.kernel is a Markov kernel
+    haveI hmarkovK : IsMarkovKernel M.kernel := M.markov_kernel
+    -- M.kernel.iter (n+1) is also a Markov kernel (by the instance in Kernel.Basic)
+    haveI hmarkovIter : IsMarkovKernel (M.kernel.iter (n + 1)) :=
+      ProbabilityTheory.Kernel.instIsMarkovKernelIter (n + 1) M.kernel
+    haveI hprob : IsProbabilityMeasure ((M.kernel.iter (n + 1)) s) :=
+      hmarkovIter.isProbabilityMeasure s
+    have hInt : Integrable f ((M.kernel.iter (n + 1)) s) := Integrable.of_finite
+    -- Rewrite using the definitional equality
+    show ∫ s_1, f s_1 ∂(M.kernel.iter (n + 1)) s = _
+    conv_lhs => rw [show M.kernel.iter (n + 1) = (M.kernel.iter n) ∘ₖ M.kernel from rfl]
+    rw [Kernel.integral_comp hInt]
+    simp_rw [fun x => ih x]
+    simp only [Matrix.mul_apply]
+    haveI hprob' : IsProbabilityMeasure (M.kernel s) := M.markov_kernel.isProbabilityMeasure s
+    have hfInt : Integrable (fun s' => ∑ s'', (kernel_mat M ^ n) s' s'' • f s'') (M.kernel s) :=
+      Integrable.of_finite
+    rw [integral_fintype _ hfInt]
+    simp_rw [Measure.real_def, kernel_apply_eq_mat_apply]
+    -- LHS: ∑ x, kernel_mat M s x • ∑ s'', (kernel_mat M ^ n) x s'' • f s''
+    -- RHS: ∑ x, (∑ j, kernel_mat M s j * (kernel_mat M ^ n) j x) • f x
+    -- Expand the smul in LHS
+    simp_rw [smul_sum, smul_smul]
+    -- LHS: ∑ x, ∑ x_1, (kernel_mat M s x * (kernel_mat M ^ n) x x_1) • f x_1
+    -- RHS: ∑ x, (∑ j, kernel_mat M s j * (kernel_mat M ^ n) j x) • f x
+    -- Swap the outer and inner sum
+    rw [Finset.sum_comm]
+    -- Now LHS: ∑ x_1, ∑ x, (kernel_mat M s x * (kernel_mat M ^ n) x x_1) • f x_1
+    -- Manipulate to match RHS
+    congr 1
+    ext x
+    rw [← Finset.sum_smul]
 
 end Finite
 

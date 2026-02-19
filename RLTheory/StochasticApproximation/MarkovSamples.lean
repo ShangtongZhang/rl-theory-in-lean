@@ -7,7 +7,6 @@ import Mathlib.LinearAlgebra.FiniteDimensional.Basic
 
 import RLTheory.Defs
 import RLTheory.MeasureTheory.MeasurableSpace.Constructions
-import RLTheory.MeasureTheory.Group.Arithmetic
 import RLTheory.StochasticApproximation.MartingaleDifference
 import RLTheory.StochasticApproximation.CondExp
 import RLTheory.StochasticApproximation.Pathwise
@@ -78,7 +77,7 @@ end MeasureTheory
 
 lemma fun_sum {α β γ : Type*} [AddCommMonoid β] [AddCommMonoid γ]
   (f : α → β → γ) (s : Finset β) :
-  (fun a => (∑ b ∈ s, f a b)) = ∑ b in s, fun a => f a b := by
+  (fun a => (∑ b ∈ s, f a b)) = ∑ b ∈ s, fun a => f a b := by
   funext a
   simp
 
@@ -485,40 +484,145 @@ lemma Skeleton.bdd_of_e₂₂ :
     rw [hω i hi.1 hi.2]
     simp_rw [sk.g_eq_expectation_G, Fintype.sum_prod_type, ←sum_sub_distrib,
       ←sub_smul]
-    apply LE.le.trans; apply sum_le_sum
-    intro i hi
-    apply LE.le.trans; grw [norm_sum_le]
-    grw [sum_le_sum]
-    intro s hs
-    apply LE.le.trans; grw [norm_sum_le]
-    simp_rw [norm_smul, ←sub_mul, norm_mul]
-    simp
-    apply sum_le_sum
-    intro s' hs'
-    grw [hC₁]
-    simp_rw [abs_of_nonneg ((hP.stochastic _).nonneg _), ←sum_mul,
-      ←mul_sum, (hP.stochastic ?_).rowsum]
-    simp
-    grw [sum_le_sum]
-    rotate_left
-    intro i hi
-    grw [hC₂ (ω (sk.anc.t n)).2]
-    simp_rw [abs_of_nonneg (sk.anc.hα.pos ?_).le]
-    apply LE.le.trans; apply sum_le_sum
-    intro i hi
-    simp at hi
-    apply LE.le.trans; rw [pow_sub₀ ρ (by linarith) hi.1]
-    grw [sk.anc.hα_mono hi.1, hC₃]
-    simp_rw [←mul_assoc, ←sum_mul, ←mul_sum]
-    grw [geom_sum_Ico_le_of_lt_one]
-    simp_rw [mul_assoc]
-    rw [←mul_assoc (b := (ρ ^ sk.anc.t n) ⁻¹), inv_eq_one_div,
-      div_mul_div_cancel₀']
-    apply le_of_eq
-    ring_nf
-    positivity
-    linarith
-    linarith
+    -- Sum over s' gives ∑ |P s s'| = 1 (for stochastic matrix)
+    have hPstoch : ∀ s : S, ∑ s' : S, |sk.mrp.P s s'| = 1 := fun s => by
+      simp_rw [abs_of_nonneg ((hP.stochastic s).nonneg _)]
+      exact (hP.stochastic s).rowsum
+
+    -- Helper lemma for bounding the inner norm
+    have hInnerBound : ∀ k ∈ Ico (sk.anc.t n) (sk.anc.t (n + 1)),
+        ‖∑ s, ∑ s', ((sk.mrp.P ^ (k - sk.anc.t n)) (ω (sk.anc.t n)).2 s * sk.mrp.P s s' -
+           sk.mrp.μ s * sk.mrp.P s s') • sk.G (sk.x (sk.anc.t n) ω) (s, s')‖
+        ≤ C₂ * ρ ^ (k - sk.anc.t n) * (C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1)) := by
+      intro k hk
+      calc ‖∑ s, ∑ s', ((sk.mrp.P ^ (k - sk.anc.t n)) (ω (sk.anc.t n)).2 s * sk.mrp.P s s' -
+               sk.mrp.μ s * sk.mrp.P s s') • sk.G (sk.x (sk.anc.t n) ω) (s, s')‖
+         ≤ ∑ s, ‖∑ s', ((sk.mrp.P ^ (k - sk.anc.t n)) (ω (sk.anc.t n)).2 s * sk.mrp.P s s' -
+               sk.mrp.μ s * sk.mrp.P s s') • sk.G (sk.x (sk.anc.t n) ω) (s, s')‖ :=
+           norm_sum_le _ _
+       _ ≤ ∑ s, ∑ s', ‖((sk.mrp.P ^ (k - sk.anc.t n)) (ω (sk.anc.t n)).2 s * sk.mrp.P s s' -
+               sk.mrp.μ s * sk.mrp.P s s') • sk.G (sk.x (sk.anc.t n) ω) (s, s')‖ := by
+           gcongr with s _; exact norm_sum_le _ _
+       _ = ∑ s, ∑ s', |(sk.mrp.P ^ (k - sk.anc.t n)) (ω (sk.anc.t n)).2 s - sk.mrp.μ s| *
+               |sk.mrp.P s s'| * ‖sk.G (sk.x (sk.anc.t n) ω) (s, s')‖ := by
+           congr 1; ext s; congr 1; ext s'
+           rw [norm_smul, Real.norm_eq_abs, ←sub_mul, abs_mul]
+       _ ≤ ∑ s, ∑ s', |(sk.mrp.P ^ (k - sk.anc.t n)) (ω (sk.anc.t n)).2 s - sk.mrp.μ s| *
+               |sk.mrp.P s s'| * (C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1)) := by
+           gcongr with s _ s' _; exact hC₁ _ _
+       _ = ∑ s, |(sk.mrp.P ^ (k - sk.anc.t n)) (ω (sk.anc.t n)).2 s - sk.mrp.μ s| *
+               (C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1)) := by
+           congr 1; ext s
+           -- ∑ s', |a| * |P s s'| * C = |a| * (∑ s', |P s s'|) * C = |a| * 1 * C = |a| * C
+           -- The constant a = |P^k s - μ s| doesn't depend on s', factor it out
+           set ha := |(sk.mrp.P ^ (k - sk.anc.t n)) (ω (sk.anc.t n)).2 s - sk.mrp.μ s| with ha_def
+           set hC := C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1) with hC_def
+           calc ∑ s', ha * |sk.mrp.P s s'| * hC
+             = (∑ s', ha * |sk.mrp.P s s'|) * hC := (Finset.sum_mul ..).symm
+           _ = ha * (∑ s', |sk.mrp.P s s'|) * hC := by
+               congr 1; rw [← Finset.mul_sum]
+           _ = ha * 1 * hC := by rw [hPstoch s]
+           _ = ha * hC := by ring
+       _ = (∑ s, |(sk.mrp.P ^ (k - sk.anc.t n)) (ω (sk.anc.t n)).2 s - sk.mrp.μ s|) *
+               (C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1)) := by rw [sum_mul]
+       _ ≤ C₂ * ρ ^ (k - sk.anc.t n) * (C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1)) := by
+           have := hC₂ (ω (sk.anc.t n)).2 (k - sk.anc.t n)
+           calc (∑ s, |(sk.mrp.P ^ (k - sk.anc.t n)) (ω (sk.anc.t n)).2 s - sk.mrp.μ s|) *
+                   (C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1))
+             ≤ (C₂ * ρ ^ (k - sk.anc.t n)) * (C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1)) := by gcongr
+           _ = C₂ * ρ ^ (k - sk.anc.t n) * (C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1)) := by ring
+
+    -- Bound each term in the outer sum using hInnerBound
+    have hBound : ∀ k ∈ Ico (sk.anc.t n) (sk.anc.t (n + 1)),
+        ‖sk.α k‖ * ‖∑ s, ∑ s', ((sk.mrp.P ^ (k - sk.anc.t n)) (ω (sk.anc.t n)).2 s * sk.mrp.P s s' -
+           sk.mrp.μ s * sk.mrp.P s s') • sk.G (sk.x (sk.anc.t n) ω) (s, s')‖
+        ≤ ‖sk.α k‖ * C₂ * ρ ^ (k - sk.anc.t n) * (C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1)) := by
+      intro k hk
+      have hIB := hInnerBound k hk
+      have hαnorm : 0 ≤ ‖sk.α k‖ := norm_nonneg _
+      calc ‖sk.α k‖ * ‖∑ s, ∑ s', ((sk.mrp.P ^ (k - sk.anc.t n)) (ω (sk.anc.t n)).2 s *
+               sk.mrp.P s s' - sk.mrp.μ s * sk.mrp.P s s') • sk.G (sk.x (sk.anc.t n) ω) (s, s')‖
+         ≤ ‖sk.α k‖ * (C₂ * ρ ^ (k - sk.anc.t n) * (C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1))) :=
+           mul_le_mul_of_nonneg_left hIB hαnorm
+       _ = ‖sk.α k‖ * C₂ * ρ ^ (k - sk.anc.t n) * (C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1)) := by
+           ring
+
+    -- Apply the bound to the sum
+    apply LE.le.trans (sum_le_sum hBound)
+    -- Now goal is: ∑ k ∈ Ico, ‖α k‖ * C₂ * ρ^(k-tn) * (C₁ * (‖x‖+1)) ≤ C₃ * C₂ / (1-ρ) * C₁ * β² * (‖x‖+1)
+    -- First convert ‖α k‖ = α k using positivity, then bound α k ≤ α tn ≤ C₃ * β²
+    have hαpos : ∀ k, ‖sk.α k‖ = sk.α k := fun k => Real.norm_of_nonneg (sk.anc.hα.pos k).le
+    simp_rw [hαpos]
+    -- Now bound α k ≤ α (tn) ≤ C₃ * β² for k ≥ tn
+    apply LE.le.trans
+    · apply sum_le_sum
+      intro i hi
+      simp only [Finset.mem_Ico] at hi
+      have hαmono : sk.α i ≤ sk.α (sk.anc.t n) := sk.anc.hα_mono hi.1
+      have hαbdd : sk.α (sk.anc.t n) ≤ C₃ * sk.anc.β n ^ 2 := hC₃ n
+      have h1 : sk.α i * C₂ * ρ ^ (i - sk.anc.t n) * (C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1))
+        ≤ sk.α (sk.anc.t n) * C₂ * ρ ^ (i - sk.anc.t n) * (C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1)) := by
+          gcongr
+      have h2 : sk.α (sk.anc.t n) * C₂ * ρ ^ (i - sk.anc.t n) * (C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1))
+        ≤ (C₃ * sk.anc.β n ^ 2) * C₂ * ρ ^ (i - sk.anc.t n) * (C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1)) := by
+          gcongr
+      exact le_trans h1 h2
+    -- Now factor out and bound the geometric sum
+    simp_rw [←mul_assoc, ←sum_mul]
+    rw [← Finset.mul_sum]
+    -- ∑ k ∈ Ico tn t(n+1), ρ^(k-tn) ≤ ∑ k, ρ^k ≤ 1/(1-ρ) for ρ < 1
+    have hρpos : 0 < ρ := by linarith
+    have hρ1 : ρ < 1 := by linarith
+    -- The sum ∑_{k ∈ Ico tn t(n+1)} ρ^(k-tn) = ∑_{j=0}^{t(n+1)-tn-1} ρ^j ≤ ∑_{j=0}^∞ ρ^j = 1/(1-ρ)
+    have hgeom : ∑ k ∈ Ico (sk.anc.t n) (sk.anc.t (n + 1)), ρ ^ (k - sk.anc.t n)
+        ≤ (1 - ρ)⁻¹ := by
+      -- Reindex the sum: k ↦ k - tn gives j in range (t(n+1) - tn)
+      have hreindex : ∑ k ∈ Ico (sk.anc.t n) (sk.anc.t (n + 1)), ρ ^ (k - sk.anc.t n)
+          = ∑ j ∈ range (sk.anc.t (n + 1) - sk.anc.t n), ρ ^ j := by
+        refine Finset.sum_bij' (fun k _ => k - sk.anc.t n) (fun j _ => j + sk.anc.t n) ?_ ?_ ?_ ?_ ?_
+        · intro k hk; simp only [Finset.mem_Ico] at hk; simp only [Finset.mem_range]; omega
+        · intro j hj; simp only [Finset.mem_range] at hj; simp only [Finset.mem_Ico]; omega
+        · intro k hk
+          simp only [Finset.mem_Ico] at hk
+          simp only [Nat.sub_add_cancel hk.1]
+        · intro j _; simp only [Nat.add_sub_cancel]
+        · intro k _; rfl
+      rw [hreindex]
+      -- Use geom_sum_eq for finite geometric sum: ∑_{j<m} ρ^j = (ρ^m - 1)/(ρ - 1) = (1 - ρ^m)/(1 - ρ)
+      rw [geom_sum_eq (ne_of_lt hρ1)]
+      -- (ρ^m - 1)/(ρ - 1) = (1 - ρ^m)/(1 - ρ) since numerator and denominator both flip sign
+      have hρne1 : ρ - 1 ≠ 0 := by linarith
+      have h1mρne0 : 1 - ρ ≠ 0 := by linarith
+      have heq : (ρ ^ (sk.anc.t (n + 1) - sk.anc.t n) - 1) / (ρ - 1)
+          = (1 - ρ ^ (sk.anc.t (n + 1) - sk.anc.t n)) / (1 - ρ) := by
+        rw [div_eq_div_iff hρne1 h1mρne0]
+        ring
+      rw [heq, inv_eq_one_div, div_le_div_iff_of_pos_right (by linarith : 0 < 1 - ρ)]
+      simp only [sub_le_self_iff]
+      exact pow_nonneg hρpos.le _
+    -- Final bound: use hgeom to replace ∑ ρ^k by (1-ρ)⁻¹
+    have hbound : C₃ * sk.anc.β n ^ 2 * C₂ *
+        (∑ k ∈ Ico (sk.anc.t n) (sk.anc.t (n + 1)), ρ ^ (k - sk.anc.t n)) *
+        C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1)
+        ≤ C₃ * sk.anc.β n ^ 2 * C₂ * (1 - ρ)⁻¹ * C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1) := by
+      have h1 : 0 ≤ C₃ * sk.anc.β n ^ 2 * C₂ := by positivity
+      have h2 : 0 ≤ C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1) := by positivity
+      have h3 : 0 ≤ (1 - ρ)⁻¹ := by apply le_of_lt; apply inv_pos_of_pos; linarith
+      calc C₃ * sk.anc.β n ^ 2 * C₂ *
+          (∑ k ∈ Ico (sk.anc.t n) (sk.anc.t (n + 1)), ρ ^ (k - sk.anc.t n)) *
+          C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1)
+        = C₃ * sk.anc.β n ^ 2 * C₂ *
+          (∑ k ∈ Ico (sk.anc.t n) (sk.anc.t (n + 1)), ρ ^ (k - sk.anc.t n)) *
+          (C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1)) := by ring
+      _ ≤ C₃ * sk.anc.β n ^ 2 * C₂ * (1 - ρ)⁻¹ * (C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1)) := by
+          apply mul_le_mul_of_nonneg_right _ h2
+          apply mul_le_mul_of_nonneg_left hgeom h1
+      _ = C₃ * sk.anc.β n ^ 2 * C₂ * (1 - ρ)⁻¹ * C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1) := by ring
+    exact calc C₃ * sk.anc.β n ^ 2 * C₂ * (∑ k ∈ Ico (sk.anc.t n) (sk.anc.t (n + 1)), ρ ^ (k - sk.anc.t n)) *
+            C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1)
+      ≤ C₃ * sk.anc.β n ^ 2 * C₂ * (1 - ρ)⁻¹ * C₁ * (‖sk.x (sk.anc.t n) ω‖ + 1) := hbound
+    _ = C₃ * C₂ / (1 - ρ) * C₁ * sk.anc.β n ^ 2 * (‖sk.x (sk.anc.t n) ω‖ + 1) := by
+        rw [inv_eq_one_div]; ring
 
 theorem Skeleton.ae_tendsto
   {z : E d}
@@ -572,7 +676,6 @@ theorem Skeleton.ae_tendsto
     intro n
     unfold e₁
     simp
-    apply Measurable.stronglyMeasurable
     simp [subsequence, shift]
     apply Finset.measurable_sum
     intro i hi
@@ -616,7 +719,7 @@ theorem Skeleton.ae_tendsto
     simp [←Pi.sub_def]
     simp [Pi.smul_def]
     apply EventuallyEq.trans
-    apply EventuallyEq.const_smul
+    apply (EventuallyEq.const_smul · (sk.α i))
     apply EventuallyEq.trans
     apply condExp_sub
     apply sk.integrable_of_G
@@ -628,8 +731,6 @@ theorem Skeleton.ae_tendsto
     apply condExp_condExp
     rfl
     rfl
-    simp
-    apply Eventually.of_forall
     simp
   case he₂ =>
     obtain ⟨C₁, hC₁nonneg, hC₁⟩ := sk.bdd_of_e₂₁
@@ -646,7 +747,6 @@ theorem Skeleton.ae_tendsto
   case he₂Adapted =>
     intro n
     unfold e₂ e₂₁ e₂₂
-    apply Measurable.stronglyMeasurable
     simp [subsequence, shift]
     simp_rw [←sum_add_distrib, ←smul_add]
     apply Finset.measurable_sum
@@ -711,10 +811,11 @@ lemma Nat.exists_mem_Ico_of_mono
     simp at h
     have : ∀ k, k ≤ t k := by
       intro k
-      induction' k with k ih
-      simp [ht0]
-      have := htmono k
-      omega
+      induction k with
+      | zero => simp [ht0]
+      | succ k ih =>
+        have := htmono k
+        omega
     have := (this (m + 1)).trans h
     have := Nat.le_findGreatest (P := P) this (by simp [P, h])
     rw [←hmdef] at this

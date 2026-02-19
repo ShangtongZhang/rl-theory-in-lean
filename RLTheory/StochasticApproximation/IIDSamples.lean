@@ -7,7 +7,6 @@ import Mathlib.LinearAlgebra.FiniteDimensional.Basic
 
 import RLTheory.Defs
 import RLTheory.MeasureTheory.MeasurableSpace.Constructions
-import RLTheory.MeasureTheory.Group.Arithmetic
 import RLTheory.StochasticApproximation.MartingaleDifference
 import RLTheory.StochasticApproximation.CondExp
 import RLTheory.StochasticApproximation.Pathwise
@@ -101,7 +100,7 @@ theorem ae_tendsto_of_iterates_iid_samples
       constructor
       exact hx.init
       intro n ω
-      simp [-PiLp.inner_apply, e₁, e₂]
+      simp [e₁, e₂]
       rw [add_assoc, ←smul_add, sub_add_sub_cancel']
       rw [hx.step]
 
@@ -123,7 +122,7 @@ theorem ae_tendsto_of_iterates_iid_samples
     case he₂Adapted =>
       simp [e₂]
       intro n
-      simp [stronglyMeasurable_const]
+      exact measurable_const
     case he₁Adapted =>
       simp [e₁]
       intro n
@@ -136,7 +135,6 @@ theorem ae_tendsto_of_iterates_iid_samples
         apply piLE.mono
         simp
         rfl
-      apply Measurable.stronglyMeasurable
       apply Measurable.smul
       apply measurable_const
       simp [Filtration.shift]

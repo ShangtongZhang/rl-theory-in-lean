@@ -27,30 +27,30 @@ noncomputable def iter (κ : Kernel α α) : ℕ → Kernel α α
 
 instance (n : ℕ) (κ : Kernel α α) [IsMarkovKernel κ] :
   IsMarkovKernel (κ.iter n) := by
-  induction' n with n ih
-  case zero =>
+  induction n with
+  | zero =>
     simp [iter]
     infer_instance
-  case succ =>
+  | succ n ih =>
     simp [iter]
     infer_instance
 
 lemma iter_comm (κ : Kernel α α) (n : ℕ) :
   κ ∘ₖ κ.iter n = κ.iter n ∘ₖ κ := by
-  induction' n with n ih
-  case zero =>
+  induction n with
+  | zero =>
     simp [iter, Kernel.id_comp]
-  case succ =>
+  | succ n ih =>
     simp [iter]
     conv_rhs => rw [←ih]
     simp [comp_assoc]
 
 lemma iter_comp (κ : Kernel α α) (m n : ℕ) :
   (κ.iter m).comp (κ.iter n) = κ.iter (m + n) := by
-  induction' m with m ih
-  case zero =>
+  induction m with
+  | zero =>
     simp [iter, Kernel.id_comp]
-  case succ =>
+  | succ m ih =>
     have : m + 1 + n = (m + n) + 1 := by omega
     rw [this, iter, iter, ←ih]
     simp [comp_assoc]

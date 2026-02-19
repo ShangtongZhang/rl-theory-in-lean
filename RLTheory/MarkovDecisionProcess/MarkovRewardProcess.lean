@@ -8,7 +8,7 @@ import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Analysis.InnerProductSpace.Defs
 import Mathlib.LinearAlgebra.LinearIndependent.Defs
 import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.LinearAlgebra.Matrix.Spectrum
+import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.LinearAlgebra.UnitaryGroup
 import Mathlib.Data.Real.StarOrdered
 
@@ -113,16 +113,16 @@ lemma FiniteMRP.posDef_of_D : PosDef MRP.D := by
   exact PosDef.diagonal hμpos
 
 noncomputable def FiniteMRP.normedAddCommGroup :
-  NormedAddCommGroup (S → ℝ) := by
-  exact NormedAddCommGroup.ofMatrix MRP.posDef_of_D
+  NormedAddCommGroup (S → ℝ) :=
+  MRP.D.toNormedAddCommGroup MRP.posDef_of_D
 
 noncomputable def FiniteMRP.seminormedAddCommGroup :
-  SeminormedAddCommGroup (S → ℝ) := by
-  exact MRP.normedAddCommGroup.toSeminormedAddCommGroup
+  SeminormedAddCommGroup (S → ℝ) :=
+  MRP.normedAddCommGroup.toSeminormedAddCommGroup
 
 noncomputable def FiniteMRP.innerProductSpace :
   @InnerProductSpace ℝ (S → ℝ) _ MRP.seminormedAddCommGroup :=
-  InnerProductSpace.ofMatrix MRP.posDef_of_D
+  MRP.D.toInnerProductSpace MRP.posDef_of_D.posSemidef
 
 local notation "⟪" x ", " y "⟫" =>
   @Inner.inner ℝ (S → ℝ) MRP.innerProductSpace.toInner x y
@@ -132,35 +132,35 @@ local notation (priority := 2000) "‖" x "‖" =>
 
 lemma FiniteMRP.innder_def (x y : S → ℝ) :
   ⟪x, y⟫ = x ᵥ* MRP.D ⬝ᵥ y := by
-  simp [FiniteMRP.innerProductSpace,
-    InnerProductSpace.ofMatrix, InnerProductSpace.toInner,
-    InnerProductSpace.ofCore]
-  rw [dotProduct_comm]
-  conv_lhs => rw [←transpose_transpose MRP.D]
-  rw [dotProduct_transpose_mulVec]
-  rw [dotProduct_comm, ←vecMul_transpose]
-  simp
+  -- The inner product from toInnerProductSpace is (M *ᵥ y) ⬝ᵥ star x = (D *ᵥ y) ⬝ᵥ x
+  -- We need to show this equals x ᵥ* D ⬝ᵥ y
+  show (MRP.D *ᵥ y) ⬝ᵥ x = x ᵥ* MRP.D ⬝ᵥ y
+  rw [dotProduct_comm, dotProduct_mulVec]
 
 lemma FiniteMRP.inner_eq_sum (x) :
   ⟪x, x⟫ = ∑ s, MRP.μ s * x s ^ 2 := by
-  simp [MRP.innder_def, dotProduct, FiniteMRP.D, diagonal, vecMul]
+  rw [MRP.innder_def]
+  simp only [FiniteMRP.D, vecMul_diagonal, dotProduct]
   apply sum_congr rfl
-  ring_nf; simp
+  intro s _
+  ring
 
 lemma FiniteMRP.nonexpansive_P :
   ∀ v, ‖MRP.P *ᵥ v‖ ≤ ‖v‖ := by
   letI instSemi : SeminormedAddCommGroup (S → ℝ) := MRP.seminormedAddCommGroup
-  letI : InnerProductSpace ℝ (S → ℝ) := MRP.innerProductSpace
+  letI instIPS : InnerProductSpace ℝ (S → ℝ) := MRP.innerProductSpace
   have hP := (inferInstance : RowStochastic MRP.P)
   intro v
   apply le_of_sq_le_sq
-  simp_rw [norm_sq_eq_re_inner (𝕜 := ℝ)]
-  simp [inner_eq_sum]
-  have := fun s => congrFun
+  rw [@norm_sq_eq_re_inner ℝ (S → ℝ) _ instSemi instIPS,
+      @norm_sq_eq_re_inner ℝ (S → ℝ) _ instSemi instIPS]
+  rw [inner_eq_sum, inner_eq_sum]
+  simp only [RCLike.re_to_real]
+  have hstat := fun s => congrFun
     (inferInstance : Stationary MRP.μ MRP.P).stationary s
   conv_rhs =>
-    congr; rfl; ext s'
-    rw [←this s', vecMul, dotProduct, sum_mul]
+    arg 2; ext s'
+    rw [←hstat s', vecMul, dotProduct, sum_mul]
   rw [sum_comm]
   apply sum_le_sum
   intro s hs
@@ -169,8 +169,9 @@ lemma FiniteMRP.nonexpansive_P :
   apply mul_le_mul_of_nonneg_left
   simp [mulVec, dotProduct]
   have := real_inner_mul_inner_self_le (F := WithLp 2 (S → ℝ))
-    (x := fun i => √(MRP.P s i)) (y := fun i => √(MRP.P s i) * v i)
-  simp [←pow_two] at this
+    (x := WithLp.toLp 2 (fun i => √(MRP.P s i)))
+    (y := WithLp.toLp 2 (fun i => √(MRP.P s i) * v i))
+  simp only [EuclideanSpace.inner_toLp_toLp, star_trivial, ←pow_two] at this
   apply (LE.le.trans ?_ this).trans ?_
   apply le_of_eq
   apply congr
@@ -181,19 +182,18 @@ lemma FiniteMRP.nonexpansive_P :
   rw [sq_sqrt]
   ring
   apply (hP.stochastic s).nonneg
-  simp
+  · rfl
   apply le_of_eq
-  simp_rw [mul_pow]
-  conv_lhs =>
-    congr; congr; rfl; ext s'
-    rw [sq_sqrt]
-    rfl
-    apply (hP.stochastic s).nonneg
-    congr; rfl; ext s'
-    rw [sq_sqrt]
-    rfl
-    apply (hP.stochastic s).nonneg
-  simp [(hP.stochastic s).rowsum]
+  simp only [dotProduct]
+  have hsqrt : ∀ s', √(MRP.P s s') * √(MRP.P s s') = MRP.P s s' :=
+    fun s' => Real.mul_self_sqrt ((hP.stochastic s).nonneg s')
+  simp only [hsqrt, (hP.stochastic s).rowsum, one_mul]
+  apply sum_congr rfl
+  intro s' _
+  have h : √(MRP.P s s') * v s' * (√(MRP.P s s') * v s') =
+           √(MRP.P s s') * √(MRP.P s s') * (v s' * v s') := by ring
+  rw [h, hsqrt s', sq]
+  ring_nf
   apply (inferInstance : StochasticVec MRP.μ).nonneg
   apply @norm_nonneg _ instSemi.toSeminormedAddGroup v
 
@@ -215,16 +215,28 @@ instance : NegDefAsymm MRP.K := by
   intro z hz
   rw [neg_mulVec, dotProduct_neg, FiniteMRP.K, Matrix.mul_sub,]
   simp
-  rw [sub_mulVec, dotProduct_sub, smul_mulVec_assoc, dotProduct_smul]
+  rw [sub_mulVec, dotProduct_sub, smul_mulVec, dotProduct_smul]
   simp
   simp_rw [dotProduct_mulVec]
   grw [MRP.vecMul_DP_dotProduct_le_norm]
   apply mul_lt_of_lt_one_left
   rw [FiniteMRP.D]
-  have := (PosDef.diagonal hμpos).2 z hz
-  simp only [star_trivial] at this
-  rw [dotProduct_mulVec] at this
-  exact this
+  -- z ᵥ* diagonal μ ⬝ᵥ z = ∑ s, z s * μ s * z s > 0 since μ > 0 and z ≠ 0
+  simp only [vecMul_diagonal, dotProduct]
+  -- Use sum_pos' which requires all terms nonneg and at least one positive
+  have hrewrite : ∀ s, z s * MRP.μ s * z s = MRP.μ s * z s ^ 2 := fun s => by ring
+  simp only [hrewrite]
+  -- z ≠ 0 means ∃ s, z s ≠ 0
+  have ⟨s₀, hs₀⟩ : ∃ s, z s ≠ 0 := by
+    by_contra! hall
+    apply hz
+    funext s
+    exact hall s
+  apply Finset.sum_pos'
+  · intro s _
+    apply mul_nonneg (le_of_lt (hμpos s))
+    apply sq_nonneg
+  · exact ⟨s₀, Finset.mem_univ s₀, mul_pos (hμpos s₀) (sq_pos_of_ne_zero hs₀)⟩
   exact MRP.hγ.2
   exact MRP.hγ.1
 

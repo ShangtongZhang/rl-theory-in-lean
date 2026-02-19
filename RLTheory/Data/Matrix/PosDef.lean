@@ -6,7 +6,8 @@ import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Analysis.InnerProductSpace.Defs
 import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.LinearAlgebra.Matrix.Spectrum
+import Mathlib.Analysis.Matrix.PosDef
+import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.LinearAlgebra.UnitaryGroup
 import Mathlib.Data.Real.StarOrdered
 
@@ -26,21 +27,20 @@ lemma posDefAsymm_iff : PosDefAsymm A ↔ Matrix.PosDef (A + Aᵀ) := by
   constructor
   case mp =>
     intro h
-    constructor
-    apply isHermitian_add_transpose_self
-    intro x hx
-    rw [star_trivial, add_mulVec, dotProduct_add,]
-    rw [dotProduct_transpose_mulVec]
-    have := h.pd x hx
-    linarith
+    apply PosDef.of_dotProduct_mulVec_pos
+    · apply isHermitian_add_transpose_self
+    · intro x hx
+      simp only [star_trivial]
+      rw [add_mulVec, dotProduct_add, dotProduct_transpose_mulVec]
+      have := h.pd x hx
+      linarith
   case mpr =>
     intro h
     constructor
     intro x hx
-    simp [PosDef] at h
-    have := h.2 x hx
-    rw [add_mulVec, dotProduct_add] at this
-    rw [dotProduct_transpose_mulVec] at this
+    have := h.dotProduct_mulVec_pos hx
+    simp only [star_trivial] at this
+    rw [add_mulVec, dotProduct_add, dotProduct_transpose_mulVec] at this
     linarith
 
 theorem posDefAsymm_iff'
@@ -53,9 +53,10 @@ theorem posDefAsymm_iff'
     case mp =>
       intro h
       use 1
-      simp
-      intro x
-      simp [dotProduct]
+      constructor
+      · norm_num
+      · intro x
+        simp only [dotProduct, Finset.univ_eq_empty, Finset.sum_empty, mul_zero, le_refl]
     case mpr =>
       intro h
       constructor
@@ -79,7 +80,7 @@ theorem posDefAsymm_iff'
       have hηpos : 0 < η := by
         obtain ⟨i, _, hi⟩ :=
           exists_mem_eq_inf' (s := Finset.univ) (by simp) h.1.eigenvalues
-        have := h.eigenvalues_pos i
+        have := PosDef.eigenvalues_pos h i
         unfold η
         rw [hi]
         exact this
@@ -123,16 +124,19 @@ theorem posDefAsymm_iff'
     case mpr =>
       intro h
       obtain ⟨η, hηpos, hη⟩ := h
-      constructor
-      apply isHermitian_add_transpose_self
-      intro x hx
-      rw [star_trivial, add_mulVec, dotProduct_add]
-      rw [dotProduct_transpose_mulVec]
-      simp
-      apply LT.lt.trans_le (?_) (hη x)
-      apply mul_pos hηpos
-      nth_rw 1 [←star_trivial x]
-      apply dotProduct_star_self_pos_iff.mpr hx
+      apply PosDef.of_dotProduct_mulVec_pos
+      · apply isHermitian_add_transpose_self
+      · intro x hx
+        simp only [star_trivial]
+        rw [add_mulVec, dotProduct_add, dotProduct_transpose_mulVec]
+        have h1 : x ⬝ᵥ A *ᵥ x + x ⬝ᵥ A *ᵥ x = 2 * (x ⬝ᵥ A *ᵥ x) := by ring
+        rw [h1]
+        have hxx_pos : 0 < x ⬝ᵥ x := by
+          rw [← star_trivial x]
+          exact dotProduct_star_self_pos_iff.mpr hx
+        have hAxpos : 0 < x ⬝ᵥ A *ᵥ x :=
+          lt_of_lt_of_le (mul_pos hηpos hxx_pos) (hη x)
+        linarith
 
 class NegDefAsymm : Prop where
   nd : PosDefAsymm (-A)

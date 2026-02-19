@@ -7,7 +7,6 @@ import Mathlib.LinearAlgebra.FiniteDimensional.Basic
 
 import RLTheory.Defs
 import RLTheory.MeasureTheory.MeasurableSpace.Constructions
-import RLTheory.MeasureTheory.Group.Arithmetic
 import RLTheory.Probability.MarkovChain.Defs
 import RLTheory.Probability.MarkovChain.Finite.Defs
 import RLTheory.Probability.MarkovChain.Trajectory
@@ -89,7 +88,7 @@ lemma bdd_of_iterates
   (hαpos : ∀ n, 0 < α n) :
   ∀ n, ∃ C, 0 ≤ C ∧ ∀ᵐ ω ∂μ, ‖x n ω‖ ≤ C := by
   intro n
-  induction' n with n hn
+  induction n with | zero => ?_ | succ n hn => ?_
   case zero =>
     refine ⟨‖x₀‖, by simp, ?h⟩
     apply Eventually.of_forall
@@ -258,7 +257,7 @@ lemma IteratesOfResidual.bdd
   (hF : ∃ C, 0 ≤ C ∧ ∀ w w' y, ‖F w y - F w' y‖ ≤ C * ‖w - w'‖) :
   ∀ n, ∃ C, 0 ≤ C ∧ ∀ ω, ‖x n ω‖ ≤ C := by
   intro n
-  induction' n with n hn
+  induction n with | zero => ?_ | succ n hn => ?_
   case zero =>
     use ‖x₀‖
     constructor
@@ -325,7 +324,7 @@ lemma IteratesOfResidual.adaptedOnSamplePath
   AdaptedOnSamplePath x := by
   constructor
   intro n
-  induction' n with n hn
+  induction n with | zero => ?_ | succ n hn => ?_
   case zero =>
     use fun _ => x₀
     simp [hx.init]

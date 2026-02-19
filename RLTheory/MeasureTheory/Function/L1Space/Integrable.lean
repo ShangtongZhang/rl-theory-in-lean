@@ -28,9 +28,9 @@ lemma Integrable.finset_sum
   {μ : Measure α} [IsFiniteMeasure μ] {s : Finset ι} {f : ι → α → ℝ}
   (hf : ∀ i ∈ s, Integrable (f i) μ) :
   Integrable (fun ω => ∑ i ∈ s, f i ω) μ := by
-  induction' s using Finset.induction_on with a s ha ih
-  case empty => simp
-  case insert =>
+  induction s using Finset.induction_on with
+  | empty => simp
+  | insert a s ha ih =>
     simp only [Finset.sum_insert ha]
     apply Integrable.add
     exact hf a (Finset.mem_insert_self a s)
