@@ -6,8 +6,8 @@ See [https://lean-lang.org/install/](https://lean-lang.org/install/) for a detai
 Confirm that Lean is set up by ```lake --version```.
 
 ```
-git clone git@github.com:ShangtongZhang/rl-theory-in-lean.git RLTheory
-cd RLTheory
+git clone git@github.com:ShangtongZhang/rl-theory-in-lean.git
+cd rl-theory-in-lean
 lake exe cache get
 lake build
 ```
