@@ -3,6 +3,7 @@ SPDX-License-Identifier: MIT
 SPDX-FileCopyrightText: 2025 Shangtong Zhang <shangtong.zhang.cs@gmail.com>
 -/
 import Mathlib.Probability.ProbabilityMassFunction.Basic
+import RLTheory.Tactic.Tactics
 import Mathlib.LinearAlgebra.FiniteDimensional.Basic
 
 import RLTheory.Defs
@@ -144,8 +145,7 @@ lemma QLearningSpec.contraction_of_bellman_op (spec : QLearningSpec (S := S) (A 
   simp only [Function.comp_apply, toLinfty_sub]
   unfold bellman_op toL2 toLinfty
   simp only [PiLp.norm_eq_ciSup]
-  apply (ciSup_le_iff ?_).mpr
-  intro i
+  ciSup_le_intro i
   simp only [Real.norm_eq_abs]
   calc |spec.r (fin_to_sa i) + spec.γ * ∑ s', spec.P (fin_to_sa i) {s'} * maxₐ (WithLp.toLp 2 (WithLp.ofLp q)) s' -
         (spec.r (fin_to_sa i) + spec.γ * ∑ s', spec.P (fin_to_sa i) {s'} * maxₐ (WithLp.toLp 2 (WithLp.ofLp q')) s')|
@@ -188,8 +188,6 @@ lemma QLearningSpec.contraction_of_bellman_op (spec : QLearningSpec (S := S) (A 
           rw [← NNReal.coe_sum]
           rw [sum_probability_singleton (ι := S) (spec.P (fin_to_sa i))]
         simp
-  · apply Set.Finite.bddAbove
-    apply Finite.Set.finite_range
 
 noncomputable def QLearningSpec.optimal_q (spec : QLearningSpec (S := S) (A := A)) :=
   toL2 (ContractingWith.fixedPoint (ftoLinfty spec.bellman_op)
@@ -530,8 +528,7 @@ lemma QLearningSpec.contraction_of_expected_update_target :
     have heq := spec.expected_update_target_eq q
     have heq' := spec.expected_update_target_eq q'
     simp only [PiLp.norm_eq_ciSup, toLinfty]
-    apply ciSup_le
-    intro i
+    ciSup_le_intro i
     simp only [Real.norm_eq_abs, WithLp.ofLp_sub, Pi.sub_apply]
     have hi := congrFun heq i
     have hi' := congrFun heq' i
@@ -603,7 +600,7 @@ lemma QLearningSpec.contraction_of_expected_update_target :
 
 noncomputable def QLearningSpec.pmin_aux (spec : QLearningSpec (S := S) (A := A)) :=
   let η := spec.contraction_of_expected_update_target.choose
-  1 / (log (1 / η) / log (Fintype.card (S × A)))
+  1 / (Real.log (1 / η) / Real.log (Fintype.card (S × A)))
 
 noncomputable def QLearningSpec.pmin (spec : QLearningSpec (S := S) (A := A)) : ℕ :=
   max 2 (⌈spec.pmin_aux⌉₊ + 1)

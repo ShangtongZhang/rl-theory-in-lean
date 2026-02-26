@@ -6,6 +6,7 @@ import Mathlib.Probability.ProbabilityMassFunction.Basic
 import Mathlib.LinearAlgebra.FiniteDimensional.Basic
 import Mathlib.MeasureTheory.Function.SpecialFunctions.Inner
 
+import RLTheory.Tactic.Tactics
 import RLTheory.Defs
 import RLTheory.StochasticApproximation.IIDSamples
 import RLTheory.StochasticApproximation.MarkovSamples
@@ -53,7 +54,7 @@ lemma LinearTDSpec.lipschitz_of_update :
       unfold update
       intro z z' y
       rcases y with ⟨s, s'⟩
-      rw [←sub_smul, norm_smul]
+      sub_smul_norm_expand
       rw [sub_sub_sub_comm, add_sub_add_comm]
       simp
       rw [←mul_sub, ←inner_sub_right, ←inner_sub_right]
@@ -110,10 +111,9 @@ lemma LinearTDSpec.lipschitz_of_expected_update :
     intro z z'
     unfold expected_update
     simp_rw [←sum_sub_distrib, ←smul_sub]
-    grw [norm_sum_le]
     rw [←one_mul C, ←hμ.rowsum, sum_mul, sum_mul]
-    apply sum_le_sum
-    intro s hs
+    norm_sum_intro
+    rename_i s hs
     grw [norm_sum_le]
     simp_rw [norm_smul, norm_eq_abs, abs_mul, mul_assoc, ←mul_sum]
     rw [abs_of_nonneg]

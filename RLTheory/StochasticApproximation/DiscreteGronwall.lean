@@ -3,6 +3,7 @@ SPDX-License-Identifier: MIT
 SPDX-FileCopyrightText: 2025 Shangtong Zhang <shangtong.zhang.cs@gmail.com>
 -/
 import RLTheory.Defs
+import RLTheory.Tactic.Tactics
 
 open Real Finset
 
@@ -17,7 +18,7 @@ theorem discrete_gronwall_aux
   ∀ n, n₀ ≤ n → u n ≤ u n₀ * ∏ i ∈ Ico n₀ n, (1 + c i) +
   ∑ k ∈ Ico n₀ n, b k * ∏ i ∈ Ico (k + 1) n, (1 + c i) := by
   intro n hn
-  refine Nat.le_induction ?base ?succ n hn
+  nat_le_ind n hn
   case base => simp
   case succ =>
     intro k hk ih
@@ -65,7 +66,7 @@ theorem discrete_gronwall
     intro i hi
     simp at hi
     simp
-    apply hc i (by linarith)
+    forall_mem_ico_linarith
     omega
     omega
   have step1 : u n₀ * ∏ i ∈ Ico n₀ n, (1 + c i) +
@@ -74,7 +75,7 @@ theorem discrete_gronwall
       ∑ k ∈ Ico n₀ n, b k * ∏ i ∈ Ico n₀ n, (1 + c i) := by
     gcongr with j hj
     · simp only [mem_Ico] at hj
-      exact hb j (by linarith)
+      forall_mem_ico_linarith
     · exact hk j hj
   apply LE.le.trans step1
   rw [←sum_mul, ←add_mul]
@@ -83,15 +84,12 @@ theorem discrete_gronwall
   simp [exp_sum]
   intro i hi
   simp at hi
-  apply add_nonneg; simp; apply hc i (by linarith)
+  apply add_nonneg; simp; forall_mem_ico_linarith
   intro i hi
   simp [add_comm, add_one_le_exp]
   apply add_nonneg
   simpa
-  apply sum_nonneg
-  intro i hi
-  simp at hi
-  apply hb i (by linarith)
+  finset_sum_nonneg using forall_mem_ico_linarith
 
 theorem discrete_gronwall_Ico
   {n₀ n₁ : ℕ}
@@ -111,20 +109,17 @@ theorem discrete_gronwall_Ico
   omega
   intro i hi _
   simp at hi
-  exact hb i (by linarith)
+  forall_mem_ico_linarith
   simp
   apply sum_le_sum_of_subset_of_nonneg
   apply Ico_subset_Ico_right
   omega
   intro i hi _
   simp at hi
-  exact hc i (by linarith)
+  forall_mem_ico_linarith
   positivity
   apply add_nonneg
   simpa
-  apply sum_nonneg
-  intro i hi
-  simp at hi
-  exact hb i (by linarith)
+  finset_sum_nonneg using forall_mem_ico_linarith
 
 end StochasticApproximation

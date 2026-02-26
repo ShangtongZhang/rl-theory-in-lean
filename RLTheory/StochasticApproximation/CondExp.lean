@@ -14,6 +14,7 @@ import Mathlib.Topology.Bornology.Basic
 import Mathlib.MeasureTheory.SpecificCodomains.WithLp
 import Mathlib.Analysis.Normed.Lp.MeasurableSpace
 
+import RLTheory.Tactic.Tactics
 import RLTheory.Defs
 import RLTheory.MeasureTheory.MeasurableSpace.Constructions
 import RLTheory.MeasureTheory.Measure.GiryMonad
@@ -51,7 +52,7 @@ lemma partialTraj_frestrictLe₂_eq_id
   [∀ i, IsMarkovKernel (κ i)] :
   (partialTraj (X := X S) κ n m).map (frestrictLe₂ hnm)
     = Kernel.id := by
-    refine Nat.le_induction ?base ?succ m hnm
+    nat_le_ind m hnm
     case base =>
       unfold partialTraj
       simp
@@ -67,16 +68,7 @@ lemma partialTraj_frestrictLe₂_eq_id
     case succ =>
       intro m hnm ih
       rw [partialTraj_succ_of_le, ←Kernel.map_comp_right]
-      apply Eq.trans
-      apply congrArg
-      case h₁.a₂ =>
-        exact frestrictLe₂ (π := X S) hnm ∘ Prod.fst
-      ext h x
-      simp [IicProdIoc_def]
-      have : ↑x ≤ m := by
-        have := mem_Iic.mp x.property
-        linarith
-      simp [this]
+      eq_trans_cong [frestrictLe₂ (π := X S) hnm ∘ Prod.fst]
       rw [Kernel.map_comp, Kernel.map_comp_right]
       have : IsMarkovKernel
         ((κ m).map (MeasurableEquiv.piSingleton (X := X S) m)) := by
@@ -89,13 +81,19 @@ lemma partialTraj_frestrictLe₂_eq_id
       measurability
       measurability
       omega
+      ext h x
+      simp [IicProdIoc_def]
+      have : ↑x ≤ m := by
+        have := mem_Iic.mp x.property
+        linarith
+      simp [this]
 
 lemma partialTraj_pi_eq_kernel
   (M : HomMarkovChainSpec S)
   {n m : ℕ} (hnm : n ≤ m) :
   (partialTraj (X := X S) (expand_kernel M) n m).map (fun x => x ⟨m, by simp⟩)
     = (M.kernel.iter (m - n)).comap_last n:= by
-    refine Nat.le_induction ?base ?succ m hnm
+    nat_le_ind m hnm
     case base =>
       simp [partialTraj, iter, comap_last]
       apply Eq.trans
@@ -144,9 +142,7 @@ lemma partialTraj_pi_eq_kernel
       simp
       apply Measurable.comp
       exact M.kernel.measurable
-      apply measurable_pi_apply
-      apply measurable_pi_apply
-      measurability
+      measurable_pi_chain
       apply measurable_pi_apply
       apply measurable_pi_apply
       apply measurable_pi_apply
