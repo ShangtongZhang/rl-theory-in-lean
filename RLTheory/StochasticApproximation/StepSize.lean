@@ -6,6 +6,7 @@ import Mathlib.Analysis.SumIntegralComparisons
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 import Mathlib.Analysis.PSeries
 
+import RLTheory.Tactic.Tactics
 import RLTheory.Defs
 
 open Real Finset Filter
@@ -15,19 +16,18 @@ lemma Finset.sum_Ico_sum_Ico {α : Type*}
   (f : ℕ → α) {t : ℕ → ℕ} (ht : Monotone t) :
   ∑ k ∈ Ico n m, ∑ i ∈ Ico (t k) (t (k + 1)), f i =
     ∑ i ∈ Ico (t n) (t m), f i := by
-  refine Nat.le_induction ?base ?succ m hnm
-  simp
-  intro m hnm ih
-  rw [←Ico_union_Ico_eq_Ico (b := m), sum_union, ih]
-  simp
-  nth_rw 3 [←Ico_union_Ico_eq_Ico (b := t m)]
-  rw [sum_union]
-  apply Ico_disjoint_Ico_consecutive
-  apply ht hnm
-  apply ht (Nat.le_succ m)
-  apply Ico_disjoint_Ico_consecutive
-  exact hnm
-  simp
+  nat_le_ind m hnm
+  case base => simp
+  case succ =>
+    intro m hnm ih
+    ico_sum_split m
+    rw [ih]
+    simp
+    nth_rw 3 [←Ico_union_Ico_eq_Ico (b := t m)]
+    rw [sum_union]
+    apply Ico_disjoint_Ico_consecutive
+    apply ht hnm
+    apply ht (Nat.le_succ m)
 
 namespace StochasticApproximation
 
@@ -60,7 +60,7 @@ lemma RobbinsMonro.bdd (hα : RobbinsMonro α) :
   case hC =>
     intro n
     by_cases h : α n ≤ 1
-    apply h.trans (by apply le_max_left)
+    apply h.trans; le_max_side
     simp at h
     calc
       α n
@@ -77,14 +77,10 @@ lemma RobbinsMonro.bdd (hα : RobbinsMonro α) :
       simp
     _ ≤ ∑' i, α i ^ 2 := by
       apply hmono
-    _ ≤ max 1 (∑' n, (α n) ^ 2) := by
-      apply le_max_right
+    _ ≤ max 1 (∑' n, (α n) ^ 2) := by le_max_side
   intro n m hnm
   simp
-  apply sum_le_sum_of_subset_of_nonneg
-  simp [hnm]
-  intro i _ _
-  positivity
+  nonneg_sum_mono_le
 
 structure Anchors where
   hα : RobbinsMonro α
@@ -185,13 +181,9 @@ lemma Anchors.β_le_T_add_α :
   have := (Nat.le_find_iff (anc.exists_le n (anc.t n)) (anc.t (n + 1))).mp
     (anc.t_def n).le (anc.t (n + 1) - 1) ?_
   simp [Anchors.le] at this
-  rw [←Ico_union_Ico_eq_Ico (b := anc.t (n + 1) - 1), sum_union]
+  ico_sum_split (anc.t (n + 1) - 1)
   grw [this]
   rw [Nat.Ico_pred_singleton]
-  simp
-  omega
-  apply Ico_disjoint_Ico_consecutive
-  omega
   simp
   omega
 
@@ -201,12 +193,10 @@ lemma Anchors.sum_T_le_sum_α :
   induction m with
   | zero =>
     simp
-    apply sum_nonneg
-    intro i hi
-    exact (anc.hα.pos i).le
+    finset_sum_nonneg using exact (anc.hα.pos _).le
   | succ m ih =>
     simp_rw [range_eq_Ico] at *
-    rw [←Ico_union_Ico_eq_Ico (b := m), sum_union]
+    ico_sum_split m
     conv_rhs =>
       rw [←Ico_union_Ico_eq_Ico (b := t m) (by simp) ((anc.t_mono m).le)]
     rw [sum_union]
@@ -214,9 +204,6 @@ lemma Anchors.sum_T_le_sum_α :
     simp
     exact T_le_β m
     apply Ico_disjoint_Ico_consecutive
-    apply Ico_disjoint_Ico_consecutive
-    simp
-    simp
 
 lemma Anchors.robbinsMonro_of_β : RobbinsMonro anc.β := by
   have hpos : ∀ n, 0 < anc.β n := by
@@ -230,16 +217,9 @@ lemma Anchors.robbinsMonro_of_β : RobbinsMonro anc.β := by
   constructor
   case pos => exact hpos
   case sum =>
-    simp [β]
-    apply Tendsto.congr
-    intro n
-    rw [range_eq_Ico, Finset.sum_Ico_sum_Ico, anc.t_init]
-    simp
-    exact anc.t_mono'.monotone
-    rw [←range_eq_Ico]
-    apply Tendsto.congr ?_ (anc.hα.sum.comp (anc.t_mono'.tendsto_atTop))
-    intro n
-    simp
+    have h := anc.hT.sum
+    have hlb : ∀ n, anc.T n ≤ anc.β n := anc.T_le_β
+    tendsto_sum_ge_of_le
   case sqsum =>
     apply Summable.of_nonneg_of_le
     intro n; positivity
@@ -435,7 +415,7 @@ lemma anchors_of_inv_poly {ν : ℝ} (hν : ν ∈ Set.Ioo (2 / 3) 1) :
         mul_div_assoc, mul_rpow]
       simp
       rw [mul_comm, max_mul_of_nonneg]
-      apply LE.le.trans ?_ (by apply le_max_left)
+      apply LE.le.trans ?_ (by le_max_side)
       simp [C₁]
       rw [mul_assoc]
       apply mul_le_mul_of_nonneg_left
@@ -470,8 +450,7 @@ lemma anchors_of_inv_poly {ν : ℝ} (hν : ν ∈ Set.Ioo (2 / 3) 1) :
       · simp; apply Or.inl; linarith
       · simp; apply Or.inl; linarith
   use anc
-  obtain ⟨C, hCnonneg, hC⟩ := this
-  refine ⟨C, hCnonneg, ?hC⟩
+  obtain_bound this as C, hCnonneg, hC
   intro n
   grw [hC]
   grw [anc.T_le_β]

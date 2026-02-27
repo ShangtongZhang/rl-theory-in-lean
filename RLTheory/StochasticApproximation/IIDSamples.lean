@@ -5,6 +5,7 @@ SPDX-FileCopyrightText: 2025 Shangtong Zhang <shangtong.zhang.cs@gmail.com>
 import Mathlib.Probability.ProbabilityMassFunction.Basic
 import Mathlib.LinearAlgebra.FiniteDimensional.Basic
 
+import RLTheory.Tactic.Tactics
 import RLTheory.Defs
 import RLTheory.MeasureTheory.MeasurableSpace.Constructions
 import RLTheory.StochasticApproximation.MartingaleDifference
@@ -56,12 +57,7 @@ theorem ae_tendsto_of_iterates_iid_samples
 
     have hfm : Measurable f := by
       apply Measurable.congr (funext_iff.mpr hfF).symm
-      apply Finset.measurable_sum
-      intro s hs
-      apply Finset.measurable_sum
-      intro s' hs'
-      apply Measurable.smul
-      apply measurable_const
+      measurable_finset_smul_sum
       apply Measurable.eval
       apply Measurable.of_uncurry
       exact hFm
@@ -112,10 +108,7 @@ theorem ae_tendsto_of_iterates_iid_samples
       (ℱ := piLE) (hα := hα) (hfm := hfm) (hx := hxIterates)
       (hfLip := hfLip')
     case he₁ =>
-      obtain ⟨C, hCnonneg, hC⟩ := he₁bdd
-      use C
-      constructor
-      exact hCnonneg
+      obtain_bound he₁bdd as C, hCnonneg, hC
       apply Eventually.of_forall
       exact hC
     case he₂ => use 0; simp [e₂]

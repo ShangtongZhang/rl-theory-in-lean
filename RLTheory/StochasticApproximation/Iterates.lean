@@ -5,6 +5,7 @@ SPDX-FileCopyrightText: 2025 Shangtong Zhang <shangtong.zhang.cs@gmail.com>
 import Mathlib.Probability.ProbabilityMassFunction.Basic
 import Mathlib.LinearAlgebra.FiniteDimensional.Basic
 
+import RLTheory.Tactic.Tactics
 import RLTheory.Defs
 import RLTheory.MeasureTheory.MeasurableSpace.Constructions
 import RLTheory.Probability.MarkovChain.Defs
@@ -39,9 +40,9 @@ lemma linear_growth_of_lipschitz {f : E d → E d}
     simp
     rw [mul_add]
     apply add_le_add
-    have : C ≤ max C ‖f 0‖ := by apply le_max_left
-    gcongr
-    simp
+    · gcongr
+      le_max_side
+    · simp
 
 lemma linear_growth_of_lipschitz'
   {α : Type*} [Nonempty α] [Fintype α] {f : E d → α → E d}
@@ -59,12 +60,12 @@ lemma linear_growth_of_lipschitz'
     simp
     rw [mul_add]
     apply add_le_add
-    have : C ≤ max CF C := by apply le_max_right
-    gcongr
-    simp
-    apply Or.inl
-    apply Finset.le_sup' fun z => ‖f 0 z‖
-    simp
+    · gcongr
+      le_max_side
+    · simp
+      apply Or.inl
+      apply Finset.le_sup' fun z => ‖f 0 z‖
+      simp
 
 section extraneous_errors
 
@@ -219,10 +220,7 @@ lemma lipschitz_of_expectation
   ∃ C, 0 ≤ C ∧ ∀ x y, ‖f x - f y‖ ≤ C * ‖x - y‖ := by
   have hP : RowStochastic P := by infer_instance
   have hμ : StochasticVec μ := by infer_instance
-  obtain ⟨C, hCnonneg, hC⟩ := hFlip
-  use C
-  constructor
-  exact hCnonneg
+  obtain_bound hFlip as C, hCnonneg, hC
   intro w w'
   simp [hfF]
   simp_rw [←sum_sub_distrib, ←smul_sub]

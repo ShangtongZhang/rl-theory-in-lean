@@ -5,6 +5,7 @@ SPDX-FileCopyrightText: 2025 Shangtong Zhang <shangtong.zhang.cs@gmail.com>
 import Mathlib.Probability.ProbabilityMassFunction.Basic
 import Mathlib.LinearAlgebra.FiniteDimensional.Basic
 
+import RLTheory.Tactic.Tactics
 import RLTheory.Defs
 import RLTheory.MeasureTheory.MeasurableSpace.Constructions
 import RLTheory.StochasticApproximation.MartingaleDifference
@@ -222,10 +223,7 @@ lemma Skeleton.bdd_of_condExp_G :
   have : IsProbabilityMeasure sk.mrp.markov_samples := by
     simp [FiniteMRP.markov_samples]
     infer_instance
-  obtain ⟨C₁, _, hC₁⟩ := sk.growth_of_G
-  use C₁
-  constructor
-  linarith
+  obtain_bound sk.growth_of_G as C₁, hC₁nonneg, hC₁
   apply ae_all_iff.mpr
   intro n
   obtain ⟨C₂, _, hC₂⟩ := sk.bdd_of_G n
@@ -767,22 +765,12 @@ theorem Skeleton.ae_tendsto
     exact (sk.anc.t_mono n).le
     rfl
     simp [sk.g_eq_expectation_G]
-    apply Finset.measurable_sum
-    intro s hs
-    apply Finset.measurable_sum
-    intro s' hs'
-    apply Measurable.smul
-    apply measurable_const
+    measurable_finset_smul_sum
     apply sk.measurable_of_G₁
     simp; apply sk.anc.t_mono
   case hfm =>
     rw [funext_iff.mpr sk.hfF]
-    apply Finset.measurable_sum
-    intro s hs
-    apply Finset.measurable_sum
-    intro s' hs'
-    apply Measurable.smul
-    apply measurable_const
+    measurable_finset_smul_sum
     apply Measurable.eval
     apply Measurable.of_uncurry
     exact sk.hFm

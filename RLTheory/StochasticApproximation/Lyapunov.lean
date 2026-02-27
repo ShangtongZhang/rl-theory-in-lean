@@ -25,6 +25,7 @@ import Mathlib.Analysis.Normed.Lp.lpSpace
 import Mathlib.Analysis.SpecialFunctions.Pow.Deriv
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
 
+import RLTheory.Tactic.Tactics
 import RLTheory.Defs
 import RLTheory.Analysis.Normed.Group.Basic
 import RLTheory.StochasticApproximation.LpSpace
@@ -51,9 +52,7 @@ class LyapunovCandidate (φ : E d → ℝ) (φ' : E d → E d) where
 lemma LyapunovCandidate.inner_grad_le {φ : E d → ℝ} {φ' : E d → E d}
   (h : LyapunovCandidate φ φ') :
   ∃ C, 0 ≤ C ∧ ∀ x y, ⟪φ' x, y⟫ ≤ C * √(φ x) * √(φ y) := by
-  obtain ⟨C, hCpos, hC⟩ := h.inner_grad_le'
-  use C
-  use hCpos
+  obtain_bound h.inner_grad_le' as C, hCpos, hC
   intro x y
   simp only [PiLp.inner_apply, RCLike.inner_apply, conj_trivial]
   apply LE.le.trans ?_ (hC x y)
@@ -101,15 +100,13 @@ lemma lyapunovCandidateLp_half_sq_Lp {p : ℕ} (hp : 2 ≤ p) :
   case zero =>
     intro x; unfold half_sq_Lp; simp
   case inner_grad_eq =>
-    use 2
-    simp
+    nonneg_exists_intro 2
     intro x
     have := inner_gradient_half_sq_Lp_self (p := p) (by linarith) x
     rw [this, half_sq_Lp]
     ring
   case inner_grad_le' =>
-    use 2
-    simp
+    nonneg_exists_intro 2
     intro x y
     have := inner_abs_gradient_half_sq_Lp_le (p := p) (by linarith) x y
     grw [this]
@@ -132,15 +129,13 @@ lemma lyapunovCandidateLp_half_sq_Lp {p : ℕ} (hp : 2 ≤ p) :
     calc ‖toL2 x‖ ≤ C * ‖x‖ := hC x
       _ = √2 * C * √(half_sq_Lp x) := h_eq
   case le_norm =>
-    use (√2)⁻¹
-    simp
+    nonneg_exists_intro (√2)⁻¹
     intro x
-    -- Goal: √(half_sq_Lp x) ≤ (√2)⁻¹ * ‖x‖
-    -- half_sq_Lp x = 1/2 * ‖x‖^2, so √(half_sq_Lp x) = ‖x‖ / √2
     simp only [half_sq_Lp]
     have h1 : (1 : ℝ) / 2 * ‖x‖ ^ 2 = ‖x‖ ^ 2 / 2 := by ring
-    rw [h1, Real.sqrt_div (sq_nonneg _), Real.sqrt_sq (norm_nonneg _)]
-    rw [div_eq_mul_inv, mul_comm]
+    rw [h1]
+    sqrt_norm_simp
+    linarith
   case smooth =>
     use (p - 1)
     constructor
@@ -167,16 +162,14 @@ lemma lyapunovCandidate_half_sq_L2 :
   case zero =>
     intro x; unfold half_sq_Lp; simp
   case inner_grad_eq =>
-    use 2
-    simp
+    nonneg_exists_intro 2
     intro x
     have := inner_gradient_half_sq_Lp_self (p := 2) (by linarith) x
     simp only [toL2, WithLp.toLp_ofLp] at this
     rw [this, half_sq_Lp]
     ring
   case inner_grad_le' =>
-    use 2
-    simp
+    nonneg_exists_intro 2
     intro x y
     have := inner_abs_gradient_half_sq_Lp_le (p := 2) (by linarith) x y
     grw [this]
@@ -186,22 +179,21 @@ lemma lyapunovCandidate_half_sq_L2 :
     ring_nf
     simp
   case norm_le =>
-    refine ⟨√2, (by positivity), ?hC⟩
+    nonneg_exists_intro √2
     intro x
     simp only [half_sq_Lp]
     have h1 : (1 : ℝ) / 2 * ‖x‖ ^ 2 = ‖x‖ ^ 2 / 2 := by ring
-    rw [h1, Real.sqrt_div (sq_nonneg _), Real.sqrt_sq (norm_nonneg _)]
-    have h2 : √2 ≠ 0 := Real.sqrt_ne_zero'.mpr (by norm_num : (0 : ℝ) < 2)
-    field_simp
-    rfl
+    rw [h1]
+    sqrt_norm_simp
+    linarith
   case le_norm =>
-    use (√2)⁻¹
-    simp
+    nonneg_exists_intro (√2)⁻¹
     intro x
     simp only [half_sq_Lp]
     have h1 : (1 : ℝ) / 2 * ‖x‖ ^ 2 = ‖x‖ ^ 2 / 2 := by ring
-    rw [h1, Real.sqrt_div (sq_nonneg _), Real.sqrt_sq (norm_nonneg _)]
-    rw [div_eq_mul_inv, mul_comm]
+    rw [h1]
+    sqrt_norm_simp
+    linarith
   case smooth =>
     use 1
     constructor

@@ -19,6 +19,7 @@ import Mathlib.MeasureTheory.MeasurableSpace.Constructions
 
 import Mathlib.Algebra.Order.Ring.Basic
 
+import RLTheory.Tactic.Tactics
 import RLTheory.Defs
 import RLTheory.Analysis.Normed.Group.Basic
 import RLTheory.StochasticApproximation.Lyapunov
@@ -60,10 +61,10 @@ lemma LyapunovFunction.norm_add_le
     move_add [←a]
     apply LE.le.trans
     apply add_le_add
-    have : a + ‖z‖ ≤ max C (a + ‖z‖) := by apply le_max_right
+    have : a + ‖z‖ ≤ max C (a + ‖z‖) := by le_max_side
     exact this
     apply mul_le_mul_of_nonneg_right
-    have : C ≤ max C (a + ‖z‖) := by apply le_max_left
+    have : C ≤ max C (a + ‖z‖) := by le_max_side
     exact this
     apply Real.sqrt_nonneg
     linarith
