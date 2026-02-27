@@ -2,6 +2,7 @@
 SPDX-License-Identifier: MIT
 SPDX-FileCopyrightText: 2025 Shangtong Zhang <shangtong.zhang.cs@gmail.com>
 -/
+import RLTheory.Tactic.NatLeInd
 import Mathlib.MeasureTheory.Constructions.Polish.Basic
 import Mathlib.MeasureTheory.Function.UniformIntegrable
 import Mathlib.Probability.Martingale.Upcrossing
@@ -171,14 +172,10 @@ lemma Submartingale.uniform_bdd_l1_of_uniform_bdd_above
 
 lemma sum_cancel_consecutive {α : Type*} [AddCommGroup α] {f : ℕ → α} {m n : ℕ} (hmn : m ≤ n) :
   ∑ i ∈ Ico m n, (f (i + 1) - f i) = f n - f m := by
-  let P := fun n : ℕ =>
-    fun _ : m ≤ n => ∑ i ∈ Ico m n, (f (i + 1) - f i) = f n - f m
-  apply Nat.le_induction (P := P) ?base ?succ n hmn
-  case base => simp [P]
+  nat_le_ind n hmn
+  case base => simp
   case succ =>
-    intro n hmn
-    simp only [P]
-    intro hP
+    intro n hmn hP
     rw [←Finset.Ico_union_Ico_eq_Ico (b := n), sum_union, hP]
     simp
     apply Ico_disjoint_Ico_consecutive

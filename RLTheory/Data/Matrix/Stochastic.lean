@@ -2,6 +2,7 @@
 SPDX-License-Identifier: MIT
 SPDX-FileCopyrightText: 2025 Shangtong Zhang <shangtong.zhang.cs@gmail.com>
 -/
+import RLTheory.Tactic.FinsetSumNonneg
 import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
 import Mathlib.Order.Interval.Finset.Defs
 import Mathlib.MeasureTheory.MeasurableSpace.Instances
@@ -104,8 +105,7 @@ lemma l1_norm_eq_one (x : l1Space S) [StochasticVec x.ofLp]
 lemma simplex_subset_closedBall :
   (Simplex S) ⊆ closedBall (0 : l1Space S) 1 := by
   intro x hx
-  simp only [mem_closedBall, dist_zero_right, l1_norm_eq_sum]
-  rw [←hx.rowsum]
+  rw [mem_closedBall_zero_iff, l1_norm_eq_sum, ←hx.rowsum]
   apply sum_le_sum
   intro i _
   rw [abs_of_nonneg (hx.nonneg i)]
@@ -214,13 +214,9 @@ lemma chapman_kolmogorov_eq_ge [DecidableEq S]
   rw [←sum_erase_add (a := k)]
   apply sub_nonneg.mp
   rw [add_sub_cancel_right]
-  apply sum_nonneg
-  intro l hl
-  apply mul_nonneg
-  · have hP := RowStochastic.stochastic (P := P ^ m)
-    exact (hP i).nonneg l
-  · have hP := RowStochastic.stochastic (P := P ^ n)
-    exact (hP l).nonneg j
+  finset_sum_nonneg using exact mul_nonneg
+    ((RowStochastic.stochastic (P := P ^ m) i).nonneg _)
+    ((RowStochastic.stochastic (P := P ^ n) _).nonneg j)
   · simp
 
 section minorization
@@ -320,8 +316,7 @@ theorem smat_minorizable_with_large_pow
       unfold δij
       apply sub_nonneg.mp
       rw [add_sub_cancel_right]
-      apply sum_nonneg
-      · intro j hj; exact nonneg j
+      finset_sum_nonneg using exact nonneg _
   let δ' := δ * 1 / 2 * 1 / Fintype.card S
   refine ⟨n₁, ?hNpos, ?hN⟩
   case hNpos => unfold n₁; simp
@@ -633,9 +628,7 @@ lemma cesaro_average_is_svec
     apply mul_nonneg
     case ha => exact inv_nonneg.mpr (by linarith)
     case hb =>
-      apply sum_nonneg
-      intro k hk
-      exact (svec_mul_smat_is_svec x₀ (P ^ k)).nonneg i
+      finset_sum_nonneg using exact (svec_mul_smat_is_svec x₀ (P ^ _)).nonneg i
   case rowsum =>
     unfold cesaro_average
     simp

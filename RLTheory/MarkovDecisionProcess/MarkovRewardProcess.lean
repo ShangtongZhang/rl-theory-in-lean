@@ -12,6 +12,8 @@ import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.LinearAlgebra.UnitaryGroup
 import Mathlib.Data.Real.StarOrdered
 
+import RLTheory.Tactic.Tactics
+
 import RLTheory.Defs
 import RLTheory.MeasureTheory.MeasurableSpace.Constructions
 import RLTheory.Probability.MarkovChain.Defs
@@ -91,13 +93,8 @@ lemma FiniteMRP.mixing :
   rw [←this]
   let x : S → ℝ := fun s' => if s' = s then 1 else 0
   have hx : StochasticVec x := by
-    constructor
-    intro s'
-    unfold x
-    by_cases h : s' = s
-    simp [h]
-    simp [h]
-    simp [x]
+    change StochasticVec (fun s' => if s' = s then 1 else 0)
+    stochastic_vec_mk
   have := hmix x n
   simp [nnnorm, Norm.norm, vecMul, dotProduct, x] at this
   exact this
@@ -132,10 +129,8 @@ local notation (priority := 2000) "‖" x "‖" =>
 
 lemma FiniteMRP.innder_def (x y : S → ℝ) :
   ⟪x, y⟫ = x ᵥ* MRP.D ⬝ᵥ y := by
-  -- The inner product from toInnerProductSpace is (M *ᵥ y) ⬝ᵥ star x = (D *ᵥ y) ⬝ᵥ x
-  -- We need to show this equals x ᵥ* D ⬝ᵥ y
   show (MRP.D *ᵥ y) ⬝ᵥ x = x ᵥ* MRP.D ⬝ᵥ y
-  rw [dotProduct_comm, dotProduct_mulVec]
+  dot_mulvec_comm
 
 lemma FiniteMRP.inner_eq_sum (x) :
   ⟪x, x⟫ = ∑ s, MRP.μ s * x s ^ 2 := by
@@ -152,10 +147,8 @@ lemma FiniteMRP.nonexpansive_P :
   have hP := (inferInstance : RowStochastic MRP.P)
   intro v
   apply le_of_sq_le_sq
-  rw [@norm_sq_eq_re_inner ℝ (S → ℝ) _ instSemi instIPS,
-      @norm_sq_eq_re_inner ℝ (S → ℝ) _ instSemi instIPS]
+  norm_sq_inner_simp
   rw [inner_eq_sum, inner_eq_sum]
-  simp only [RCLike.re_to_real]
   have hstat := fun s => congrFun
     (inferInstance : Stationary MRP.μ MRP.P).stationary s
   conv_rhs =>
@@ -256,9 +249,7 @@ noncomputable def FiniteMRP.aug_chain_iid :
       simp
       apply sum_svec_mul_smat_eq_one
       intro y hy
-      apply mul_nonneg
-      apply hμ.nonneg
-      apply (hP.stochastic y.1).nonneg
+      stochastic_nonneg
     rw [←this]
     apply hasSum_fintype
   let κ := Kernel.const (S × S) μ.toMeasure
@@ -292,9 +283,7 @@ noncomputable def FiniteMRP.aug_chain_markov :
       simp
       apply sum_svec_mul_smat_eq_one
       intro y hy
-      apply mul_nonneg
-      apply hp₀.nonneg
-      apply (hP.stochastic y.1).nonneg
+      stochastic_nonneg
     rw [←this]
     apply hasSum_fintype
   let κ : Kernel (S × S) (S × S) := by
@@ -311,8 +300,7 @@ noncomputable def FiniteMRP.aug_chain_markov :
           apply (hP.stochastic y.2).rowsum
           intro z hz
           by_cases h : y.2 = z.1
-          simp [h]
-          apply (hP.stochastic z.1).nonneg
+          simp [h]; stochastic_nonneg
           simp [h]
         rw [←this]
         apply hasSum_fintype
