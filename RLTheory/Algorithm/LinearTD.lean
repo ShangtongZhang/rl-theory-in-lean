@@ -10,6 +10,7 @@ import RLTheory.Defs
 import RLTheory.StochasticApproximation.IIDSamples
 import RLTheory.StochasticApproximation.MarkovSamples
 import RLTheory.MarkovDecisionProcess.MarkovRewardProcess
+import RLTheory.Tactic.Tactics
 
 open Real Finset Filter TopologicalSpace Filter MeasureTheory.Filtration MeasureTheory ProbabilityTheory StochasticApproximation StochasticMatrix Preorder RLTheory Matrix MarkovChain
 open scoped MeasureTheory ProbabilityTheory Topology InnerProductSpace RealInnerProductSpace Gradient
@@ -61,8 +62,7 @@ lemma LinearTDSpec.lipschitz_of_update :
       simp
       grw [abs_real_inner_le_norm, abs_real_inner_le_norm]
       grw [hC, hC]
-      ring_nf
-      rfl
+      ring_close
 
 instance : MeasurableSpace (E d) := by infer_instance
 
@@ -123,8 +123,7 @@ lemma LinearTDSpec.lipschitz_of_expected_update :
     intro s' hs'
     grw [hC]
     rw [abs_of_nonneg]
-    ring_nf
-    rfl
+    ring_close
     apply (hP.stochastic s).nonneg
     apply hμ.nonneg
     apply hμ.nonneg
@@ -155,8 +154,7 @@ lemma LinearTDSpec.lipschitz_of_update_target :
     intro z z' y
     rw [add_sub_add_comm]
     grw [norm_add_le, hC]
-    ring_nf
-    rfl
+    ring_close
 
 omit [Nonempty S] in
 lemma LinearTDSpec.measurable_of_udpate_target :
@@ -174,9 +172,8 @@ lemma LinearTDSpec.unfold_expected_update_target (w : E d) :
   have hP : RowStochastic spec.P := by infer_instance
   have hμ : StochasticVec spec.μ := by infer_instance
   simp [expected_update_target, update_target, expected_update]
-  simp_rw [sum_add_distrib, ←sum_smul]
-  simp
-  simp_rw [←mul_sum, (hP.stochastic ?_).rowsum]
+  stochastic_sum_simp
+  simp_rw [←Finset.mul_sum, (hP.stochastic ?_).rowsum]
   simp [hμ.rowsum]
 
 noncomputable def LinearTDSpec.X : Matrix S (Fin d) ℝ :=

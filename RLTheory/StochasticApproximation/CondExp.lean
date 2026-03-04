@@ -3,6 +3,7 @@ SPDX-License-Identifier: MIT
 SPDX-FileCopyrightText: 2025 Shangtong Zhang <shangtong.zhang.cs@gmail.com>
 -/
 import Mathlib.Probability.ConditionalProbability
+import RLTheory.Tactic.Tactics
 import Mathlib.Probability.Kernel.IonescuTulcea.Traj
 import Mathlib.Probability.Kernel.Defs
 import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
@@ -379,9 +380,7 @@ theorem integral_bind_real
   apply AEMeasurable.ennreal_ofReal
   exact (hfκ a).aemeasurable
 
-  apply Eventually.of_forall
-  intro x
-  simp
+  ae_of_all
 
   apply integrable_of_measure_lintegral hfm hf
   apply integrable_of_measure_lintegral hfm.neg hf.neg

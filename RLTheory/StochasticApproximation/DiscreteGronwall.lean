@@ -3,6 +3,7 @@ SPDX-License-Identifier: MIT
 SPDX-FileCopyrightText: 2025 Shangtong Zhang <shangtong.zhang.cs@gmail.com>
 -/
 import RLTheory.Defs
+import RLTheory.Tactic.Tactics
 
 open Real Finset
 
@@ -86,12 +87,9 @@ theorem discrete_gronwall
   apply add_nonneg; simp; apply hc i (by linarith)
   intro i hi
   simp [add_comm, add_one_le_exp]
-  apply add_nonneg
-  simpa
-  apply sum_nonneg
-  intro i hi
-  simp at hi
-  apply hb i (by linarith)
+  have hb_sum : 0 ≤ ∑ k ∈ Ico n₀ n, b k :=
+    sum_nonneg fun i hi => hb i (Finset.mem_Ico.mp hi).1
+  nonneg_combo
 
 theorem discrete_gronwall_Ico
   {n₀ n₁ : ℕ}
@@ -120,11 +118,8 @@ theorem discrete_gronwall_Ico
   simp at hi
   exact hc i (by linarith)
   positivity
-  apply add_nonneg
-  simpa
-  apply sum_nonneg
-  intro i hi
-  simp at hi
-  exact hb i (by linarith)
+  have hb_sum : 0 ≤ ∑ k ∈ Ico n₀ n₁, b k :=
+    sum_nonneg fun i hi => hb i (Finset.mem_Ico.mp hi).1
+  nonneg_combo
 
 end StochasticApproximation

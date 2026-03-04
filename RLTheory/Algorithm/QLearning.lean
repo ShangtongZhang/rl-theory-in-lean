@@ -3,6 +3,7 @@ SPDX-License-Identifier: MIT
 SPDX-FileCopyrightText: 2025 Shangtong Zhang <shangtong.zhang.cs@gmail.com>
 -/
 import Mathlib.Probability.ProbabilityMassFunction.Basic
+import RLTheory.Tactic.Tactics
 import Mathlib.LinearAlgebra.FiniteDimensional.Basic
 
 import RLTheory.Defs
@@ -143,19 +144,17 @@ lemma QLearningSpec.contraction_of_bellman_op (spec : QLearningSpec (S := S) (A 
   unfold ftoLinfty
   simp only [Function.comp_apply, toLinfty_sub]
   unfold bellman_op toL2 toLinfty
-  simp only [PiLp.norm_eq_ciSup]
-  apply (ciSup_le_iff ?_).mpr
-  intro i
-  simp only [Real.norm_eq_abs]
+  piLp_norm_simp
+  ciSup_le_tac; rename_i i
   calc |spec.r (fin_to_sa i) + spec.γ * ∑ s', spec.P (fin_to_sa i) {s'} * maxₐ (WithLp.toLp 2 (WithLp.ofLp q)) s' -
         (spec.r (fin_to_sa i) + spec.γ * ∑ s', spec.P (fin_to_sa i) {s'} * maxₐ (WithLp.toLp 2 (WithLp.ofLp q')) s')|
       = |spec.γ * (∑ s', spec.P (fin_to_sa i) {s'} * maxₐ (WithLp.toLp 2 (WithLp.ofLp q)) s' -
                    ∑ s', spec.P (fin_to_sa i) {s'} * maxₐ (WithLp.toLp 2 (WithLp.ofLp q')) s')| := by ring_nf
-    _ = |spec.γ| * |∑ s', spec.P (fin_to_sa i) {s'} * maxₐ (WithLp.toLp 2 (WithLp.ofLp q)) s' -
-                    ∑ s', spec.P (fin_to_sa i) {s'} * maxₐ (WithLp.toLp 2 (WithLp.ofLp q')) s'| := abs_mul _ _
     _ = spec.γ * |∑ s', spec.P (fin_to_sa i) {s'} * (maxₐ (WithLp.toLp 2 (WithLp.ofLp q)) s' -
                                                       maxₐ (WithLp.toLp 2 (WithLp.ofLp q')) s')| := by
-        rw [abs_of_nonneg spec.hγ.1, ←Finset.sum_sub_distrib]
+        abs_nonneg_factor_simp
+        simp only [abs_of_nonneg spec.hγ.1]
+        rw [←Finset.sum_sub_distrib]
         simp_rw [←mul_sub]
     _ ≤ spec.γ * ∑ s', |spec.P (fin_to_sa i) {s'} * (maxₐ (WithLp.toLp 2 (WithLp.ofLp q)) s' -
                                                       maxₐ (WithLp.toLp 2 (WithLp.ofLp q')) s')| := by
@@ -165,7 +164,7 @@ lemma QLearningSpec.contraction_of_bellman_op (spec : QLearningSpec (S := S) (A 
         congr 1
         apply Finset.sum_congr rfl
         intro s' _
-        rw [abs_mul, abs_of_nonneg (by positivity)]
+        abs_nonneg_factor_simp
     _ ≤ spec.γ * ∑ s', spec.P (fin_to_sa i) {s'} * ‖q - q'‖ := by
         apply mul_le_mul_of_nonneg_left _ spec.hγ.1
         apply Finset.sum_le_sum
@@ -188,8 +187,6 @@ lemma QLearningSpec.contraction_of_bellman_op (spec : QLearningSpec (S := S) (A 
           rw [← NNReal.coe_sum]
           rw [sum_probability_singleton (ι := S) (spec.P (fin_to_sa i))]
         simp
-  · apply Set.Finite.bddAbove
-    apply Finite.Set.finite_range
 
 noncomputable def QLearningSpec.optimal_q (spec : QLearningSpec (S := S) (A := A)) :=
   toL2 (ContractingWith.fixedPoint (ftoLinfty spec.bellman_op)
@@ -351,8 +348,7 @@ lemma QLearningSpec.lipschitz_of_update_target :
     intro z z' y
     rw [add_sub_add_comm]
     grw [norm_add_le, hC]
-    ring_nf
-    rfl
+    ring_close
 
 omit [Nonempty S] in
 lemma QLearningSpec.measurable_of_udpate_target :
@@ -459,8 +455,7 @@ lemma QLearningSpec.unfold_expected_update_target
   have hP : RowStochastic spec.MRP.P := by infer_instance
   have hμ : StochasticVec spec.MRP.μ := by infer_instance
   simp [expected_update_target, update_target, expected_update]
-  simp_rw [sum_add_distrib, ←sum_smul]
-  simp
+  stochastic_sum_simp
   simp_rw [←mul_sum, (hP.stochastic ?_).rowsum]
   simp [hμ.rowsum]
 
@@ -530,8 +525,7 @@ lemma QLearningSpec.contraction_of_expected_update_target :
     have heq := spec.expected_update_target_eq q
     have heq' := spec.expected_update_target_eq q'
     simp only [PiLp.norm_eq_ciSup, toLinfty]
-    apply ciSup_le
-    intro i
+    ciSup_le_tac; rename_i i
     simp only [Real.norm_eq_abs, WithLp.ofLp_sub, Pi.sub_apply]
     have hi := congrFun heq i
     have hi' := congrFun heq' i
@@ -813,7 +807,7 @@ instance : DecreaseAlong (half_sq_Lp_E spec.pmin (Fintype.card (S × A)))
           -- Need: (c' * η - 1) * ‖...‖^2 ≤ -(2 * (1 - c' * η)) * (1/2 * ‖...‖^2)
           -- RHS = -(1 - c' * η) * ‖...‖^2 = (c' * η - 1) * ‖...‖^2
           -- So this is equality!
-          ring_nf; rfl
+          ring_close
 
 instance : LyapunovCandidate (d := Fintype.card (S × A))
   (half_sq_Lp_E spec.pmin (Fintype.card (S × A)))
