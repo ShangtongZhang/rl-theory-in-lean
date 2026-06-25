@@ -67,4 +67,6 @@ namespace RLTheory
 variable {d : ℕ}
 abbrev E (d : ℕ) := EuclideanSpace ℝ (Fin d)
 
+instance : Coe (Fin d → ℝ) (E d) := ⟨id⟩
+
 end RLTheory

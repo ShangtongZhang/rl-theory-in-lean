@@ -95,14 +95,14 @@ theorem ae_tendsto_of_iterates_mds_noise
       let ℱ' := ℱ.shift n₀
       have hxm : ∀ n, Measurable[ℱ n] (x n) := by
         intro n
-        induction n with
-        | zero =>
+        induction' n with n ih
+        case zero =>
           have : x 0 = fun ω => x₀ := by
             ext1 ω
             apply hx.init
           rw [this]
           apply measurable_const
-        | succ n ih =>
+        case succ =>
           have := hx.step n
           rw [←funext_iff] at this
           rw [this]
@@ -121,11 +121,11 @@ theorem ae_tendsto_of_iterates_mds_noise
           apply hfm.comp
           exact this
           exact this
-          apply (he₁Adapted n).mono
+          apply (he₁Adapted n).measurable.mono
           apply ℱ.mono
           simp
           rfl
-          apply (he₂Adapted n).mono
+          apply (he₂Adapted n).measurable.mono
           apply ℱ.mono
           simp
           rfl
@@ -198,7 +198,8 @@ theorem ae_tendsto_of_iterates_mds_noise
         simp [mul_pow]
       case hAdapt =>
         intro n
-        simp only
+        simp
+        apply Measurable.stronglyMeasurable
         apply Measurable.comp
         exact hφm
         apply Measurable.sub_const
@@ -222,37 +223,34 @@ theorem ae_tendsto_of_iterates_mds_noise
             ⟪φ' (x (n + n₀) ω - z), e₁ (n + n₀ + 1) ω⟫
 
           have hgradφim : ∀ i, AEStronglyMeasurable[ℱ (n + n₀)]
-            (fun a ↦ (φ' (x (n + n₀) a - z)).ofLp i) μ := by
+            (fun a ↦ φ' (x (n + n₀) a - z) i) μ := by
             intro i
             apply Measurable.aestronglyMeasurable
-            apply Measurable.comp (g := fun x : E d => x.ofLp i)
-            exact (measurable_pi_apply i).comp (WithLp.measurable_ofLp 2 _)
+            apply Measurable.comp (g := fun x : E d => x i)
+            apply measurable_pi_apply
             apply hgradφm.comp
             apply Measurable.sub_const
             apply hxm
 
           have hf₂im : ∀ i, AEStronglyMeasurable
-            (fun a ↦ (e₁ (n + n₀ + 1) a).ofLp i * (φ' (x (n + n₀) a - z)).ofLp i) μ := by
+            (fun a ↦ e₁ (n + n₀ + 1) a i * φ' (x (n + n₀) a - z) i) μ := by
             intro i
             apply AEStronglyMeasurable.mul
-            · apply Measurable.aestronglyMeasurable
-              apply Measurable.comp (g := fun x : E d => x.ofLp i)
-              exact (measurable_pi_apply i).comp (WithLp.measurable_ofLp 2 _)
-              have := he₁Adapted (n + n₀)
-              simp only [shift] at this
-              exact this.mono (ℱ.le (n + n₀ + 1)) le_rfl
-            · apply (hgradφim i).mono
-              apply ℱ.le
+            apply Measurable.aestronglyMeasurable
+            apply Measurable.comp (g := fun x : E d => x i)
+            apply measurable_pi_apply
+            have := he₁Adapted (n + n₀)
+            simp [shift] at this
+            exact (this.mono (ℱ.le (n + n₀ + 1))).measurable
+            apply (hgradφim i).mono
+            apply ℱ.le
 
           have hf₂m : AEStronglyMeasurable f₂ μ := by
             unfold f₂
-            simp only [PiLp.inner_apply, RCLike.inner_apply, conj_trivial]
-            have : (fun ω ↦ ∑ i, (e₁ (n + n₀ + 1) ω).ofLp i * (φ' (x (n + n₀) ω - z)).ofLp i) =
-                   (∑ i, fun a ↦ (e₁ (n + n₀ + 1) a).ofLp i * (φ' (x (n + n₀) a - z)).ofLp i) := by
-              ext ω
-              simp only [Finset.sum_apply]
-            rw [this]
-            refine Finset.aestronglyMeasurable_sum Finset.univ (fun i _ => hf₂im i)
+            simp
+            apply Finset.aestronglyMeasurable_sum
+            intro i hi
+            exact hf₂im i
 
           have hf₂i : ∀ i, Integrable
             (fun a ↦ e₁ (n + n₀ + 1) a i * φ' (x (n + n₀) a - z) i) μ := by
@@ -329,7 +327,7 @@ theorem ae_tendsto_of_iterates_mds_noise
             case H₂ =>
               apply Eventually.mono (he₁MDS (n + n₀))
               intro ω hω
-              simp
+              simp [-PiLp.inner_apply]
               apply inner_eq_zero_of_right
               simp
               exact hω
@@ -355,7 +353,7 @@ theorem ae_tendsto_of_iterates_mds_noise
             apply aestronglyMeasurable_const
             apply integrable_const
           have := (hf₁.add hf₂).add hf₃
-          simp only [Pi.add_def] at this
+          simp [←Pi.add_def] at this
           apply EventuallyEq.le
           apply this.trans
           apply EventuallyEq.add

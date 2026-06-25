@@ -68,15 +68,14 @@ theorem discrete_gronwall
     apply hc i (by linarith)
     omega
     omega
-  have step1 : u n₀ * ∏ i ∈ Ico n₀ n, (1 + c i) +
-      ∑ k ∈ Ico n₀ n, b k * ∏ i ∈ Ico (k + 1) n, (1 + c i) ≤
-      u n₀ * ∏ i ∈ Ico n₀ n, (1 + c i) +
-      ∑ k ∈ Ico n₀ n, b k * ∏ i ∈ Ico n₀ n, (1 + c i) := by
-    gcongr with j hj
-    · simp only [mem_Ico] at hj
-      exact hb j (by linarith)
-    · exact hk j hj
-  apply LE.le.trans step1
+  apply LE.le.trans
+  apply add_le_add_left
+  apply sum_le_sum
+  intro j hj
+  simp at hj
+  grw [hk]
+  apply hb j (by linarith)
+  simpa
   rw [←sum_mul, ←add_mul]
   apply mul_le_mul_of_nonneg_left
   grw [prod_le_prod (g := fun i => exp (c i))]

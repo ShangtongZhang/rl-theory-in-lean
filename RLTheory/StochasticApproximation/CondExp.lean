@@ -11,8 +11,6 @@ import Mathlib.MeasureTheory.MeasurableSpace.Instances
 import Mathlib.MeasureTheory.Function.L1Space.Integrable
 import Mathlib.Probability.Process.Filtration
 import Mathlib.Topology.Bornology.Basic
-import Mathlib.MeasureTheory.SpecificCodomains.WithLp
-import Mathlib.Analysis.Normed.Lp.MeasurableSpace
 
 import RLTheory.Defs
 import RLTheory.MeasureTheory.MeasurableSpace.Constructions
@@ -81,7 +79,7 @@ lemma partialTraj_frestrictLe₂_eq_id
       have : IsMarkovKernel
         ((κ m).map (MeasurableEquiv.piSingleton (X := X S) m)) := by
         apply IsMarkovKernel.map
-        exact (MeasurableEquiv.piSingleton m).measurable
+        measurability
       rw [Kernel.prod_map_fst, ←Kernel.map_comp, Kernel.id_comp]
       exact ih
       measurability
@@ -260,12 +258,7 @@ lemma condExp_iterates_update_aux
   measurability
   measurability
   measurability
-  -- AEStronglyMeasurable (fun x ↦ φ (f₂ x)) (Measure.map f₁ μ)
-  apply Measurable.aestronglyMeasurable
-  apply hφm.comp
-  apply Measurable.prod
-  · exact hφ₁m.comp (measurable_frestrictLe₂ hnm)
-  · exact measurable_pi_apply _
+  measurability
 
 lemma posPart_eq_ENNReal_toReal_ofReal (r : ℝ) :
   (r)⁺ = (ENNReal.ofReal r).toReal := by
@@ -467,20 +460,9 @@ theorem integrable_pi_iff_euclidean
       simp
 
     apply AEMeasurable.aestronglyMeasurable
-    -- f : α → E d = PiLp 2 (fun _ : Fin d => ℝ)
-    -- Need to show AEMeasurable f μ
-    -- Strategy: show AEMeasurable (fun x => (f x).ofLp) μ using aemeasurable_pi_iff
-    -- Then compose with MeasurableEquiv.toLp which is measurable
-    have h_ae : AEMeasurable (fun x => (f x).ofLp) μ := by
-      apply aemeasurable_pi_iff.mpr
-      intro i
-      exact (h i).aemeasurable
-    -- Now use that toLp is measurable and ofLp ∘ toLp = id
-    have : f = fun x => WithLp.toLp 2 ((f x).ofLp) := by
-      ext x
-      rfl
-    rw [this]
-    exact (WithLp.measurable_toLp 2 _).comp_aemeasurable h_ae
+    apply aemeasurable_pi_iff.mpr
+    intro i
+    exact (h i).aemeasurable
 
     simp
 
@@ -513,11 +495,8 @@ theorem integrable_pi_iff_euclidean
       simp [Real.sqrt_nonneg]
 
     apply AEMeasurable.aestronglyMeasurable
-    -- Need: AEMeasurable (fun x => (f x).ofLp i) μ
-    -- We have: AEMeasurable f μ (from h.aemeasurable)
-    -- And: Measurable (fun y : E d => y.ofLp i) (it's measurable_pi_apply composed with measurable_ofLp)
-    apply AEMeasurable.eval
-    exact (WithLp.measurable_ofLp 2 _).comp_aemeasurable h.aemeasurable
+    apply aemeasurable_pi_iff.mp
+    exact h.aemeasurable
 
     simp
 
@@ -533,7 +512,7 @@ theorem integral_bind_euclidean
   ∫ x, f x ∂ (μ.bind κ) = ∫ a, ∫ x, f x ∂ (κ a) ∂ μ := by
   ext i
   let idx := fun x : E d => x i
-  have := ContinuousLinearMap.integral_comp_comm (𝕜 := ℝ) (L := EuclideanSpace.proj i) (φ := f) (μ := μ.bind κ) hf
+  have := ContinuousLinearMap.integral_comp_comm (𝕜 := ℝ) (F := ℝ) (L := EuclideanSpace.proj i) (φ := f) (μ := μ.bind κ) hf
   simp at this
   rw [←this]
   set g := fun a => ∫ x, f x ∂ (κ a)
@@ -551,13 +530,13 @@ theorem integral_bind_euclidean
     apply integrable_bind_real ?_ this ?_
 
     let idx := fun x : E d => x j
-    have : Measurable idx := (measurable_pi_apply j).comp (WithLp.measurable_ofLp 2 _)
+    have : Measurable idx := by apply measurable_pi_apply
     exact this.comp hfm
     intro a
     apply (integrable_pi_iff_euclidean f (κ a)).mpr
     exact hfκ a
 
-  have := ContinuousLinearMap.integral_comp_comm (𝕜 := ℝ) (L := EuclideanSpace.proj i) (φ := g) (μ := μ) hg
+  have := ContinuousLinearMap.integral_comp_comm (𝕜 := ℝ) (F := ℝ) (L := EuclideanSpace.proj i) (φ := g) (μ := μ) hg
   simp at this
   rw [←this]
   apply Eq.trans
@@ -566,12 +545,12 @@ theorem integral_bind_euclidean
     apply Eventually.of_forall
     intro a
     simp [g]
-    have := ContinuousLinearMap.integral_comp_comm (𝕜 := ℝ) (L := EuclideanSpace.proj i) (φ := f) (μ := κ a) (hfκ a)
+    have := ContinuousLinearMap.integral_comp_comm (𝕜 := ℝ) (F := ℝ) (L := EuclideanSpace.proj i) (φ := f) (μ := κ a) (hfκ a)
     simp at this
     exact this
   apply integral_bind_real
 
-  have : Measurable idx := (measurable_pi_apply i).comp (WithLp.measurable_ofLp 2 _)
+  have : Measurable idx := by apply measurable_pi_apply
   exact this.comp hfm
 
   exact ContinuousLinearMap.integrable_comp (𝕜 := ℝ) (L := EuclideanSpace.proj i) hf
@@ -585,44 +564,36 @@ theorem Measurable.integral_kernel_prod_right
   (hfm : Measurable f.uncurry)
   (hfInt : ∀ a, Integrable (f a) (κ a))
   : Measurable fun a => ∫ (b : β), f a b ∂κ a := by
-    -- The result type is E d = PiLp 2 (...), not Pi.
-    -- We show measurability via the measurable equivalence with Pi.
-    have h_ofLp_meas : Measurable (fun a => (∫ (b : β), f a b ∂κ a).ofLp) := by
-      apply measurable_pi_iff.mpr
-      intro i
-      have : (fun a => (∫ b, f a b ∂ κ a).ofLp i) =
-        (fun a => (∫⁻ b, ENNReal.ofReal (f a b i) ∂ (κ a)).toReal) -
-        fun a => (∫⁻ b, ENNReal.ofReal (-f a b i) ∂ κ a).toReal := by
-        ext a
-        simp
-        have := ContinuousLinearMap.integral_comp_comm (𝕜 := ℝ) (L := EuclideanSpace.proj i) (φ := f a) (μ := κ a) ?_
-        simp at this
-        rw [←this]
-        rw [integral_eq_lintegral_pos_part_sub_lintegral_neg_part]
-        apply (integrable_pi_iff_euclidean (f a) (κ a)).mpr
-        apply hfInt
-        apply hfInt
-      rw [this]
-      -- hfm : Measurable f.uncurry where f.uncurry : α × β → E d
-      -- We need measurability of (fun (a, b) => (f a b).ofLp i) : α × β → ℝ
-      have hfm' : Measurable (fun p : α × β => ((f.uncurry p).ofLp) i) := by
-        apply (measurable_pi_apply i).comp
-        exact (WithLp.measurable_ofLp 2 _).comp hfm
-      apply Measurable.sub
-      · apply Measurable.ennreal_toReal
-        apply Measurable.lintegral_kernel_prod_right
-        apply Measurable.ennreal_ofReal
-        exact hfm'
-      · apply Measurable.ennreal_toReal
-        apply Measurable.lintegral_kernel_prod_right
-        apply Measurable.ennreal_ofReal
-        exact hfm'.neg
-    -- Now compose with toLp
-    have h_eq : (fun a => ∫ (b : β), f a b ∂κ a) = fun a => WithLp.toLp 2 ((∫ (b : β), f a b ∂κ a).ofLp) := by
+    apply measurable_pi_iff.mpr
+    intro i
+    have : (fun a => (∫ b, f a b ∂ κ a) i) =
+      (fun a => (∫⁻ b, ENNReal.ofReal (f a b i) ∂ (κ a)).toReal) -
+      fun a => (∫⁻ b, ENNReal.ofReal (-f a b i) ∂ κ a).toReal := by
       ext a
-      rfl
-    rw [h_eq]
-    exact (WithLp.measurable_toLp 2 _).comp h_ofLp_meas
+      simp
+      have := ContinuousLinearMap.integral_comp_comm (𝕜 := ℝ) (F := ℝ) (L := EuclideanSpace.proj i) (φ := f a) (μ := κ a) ?_
+      simp at this
+      rw [←this]
+      rw [integral_eq_lintegral_pos_part_sub_lintegral_neg_part]
+      apply (integrable_pi_iff_euclidean (f a) (κ a)).mpr
+      apply hfInt
+      apply hfInt
+
+    rw [this]
+    apply Measurable.sub
+    apply Measurable.ennreal_toReal
+    apply Measurable.lintegral_kernel_prod_right
+    apply Measurable.ennreal_ofReal
+    apply measurable_pi_iff.mp
+    rw [←Function.uncurry_def]
+    exact hfm
+    apply Measurable.ennreal_toReal
+    apply Measurable.lintegral_kernel_prod_right
+    apply Measurable.ennreal_ofReal
+    apply Measurable.neg
+    apply measurable_pi_iff.mp
+    rw [←Function.uncurry_def]
+    exact hfm
 
 theorem measurable_integral_kernel_euclidean
   {α β: Type*} [MeasurableSpace α] [MeasurableSpace β]
@@ -630,43 +601,32 @@ theorem measurable_integral_kernel_euclidean
   {f : β → E d} (hfm : Measurable f)
   (hf : ∀ a, Integrable f (κ a)):
   Measurable (fun a => ∫ x, f x ∂ κ a) := by
-  -- The result type is E d = PiLp 2 (...), not Pi.
-  -- We show measurability via the measurable equivalence with Pi.
-  have h_ofLp_meas : Measurable (fun a => (∫ x, f x ∂ κ a).ofLp) := by
-    apply measurable_pi_iff.mpr
-    intro i
-    have : (fun a => (∫ x, f x ∂ κ a).ofLp i) =
-      (fun a => (∫⁻ x, ENNReal.ofReal (f x i) ∂ (κ a)).toReal) - fun a => (∫⁻ x, ENNReal.ofReal (-f x i) ∂ κ a).toReal := by
-      ext a
-      simp
-      have := ContinuousLinearMap.integral_comp_comm (𝕜 := ℝ) (L := EuclideanSpace.proj i) (φ := f) (μ := κ a) ?_
-      simp at this
-      rw [←this]
-      rw [integral_eq_lintegral_pos_part_sub_lintegral_neg_part]
-      apply (integrable_pi_iff_euclidean f (κ a)).mpr
-      exact hf a
-      exact hf a
-    rw [this]
-    -- hfm : Measurable f where f : β → E d
-    -- We need measurability of (fun b => (f b).ofLp i) : β → ℝ
-    have hfm' : Measurable (fun b : β => ((f b).ofLp) i) := by
-      apply (measurable_pi_apply i).comp
-      exact (WithLp.measurable_ofLp 2 _).comp hfm
-    apply Measurable.sub
-    · apply Measurable.ennreal_toReal
-      apply Measurable.lintegral_kernel
-      apply Measurable.ennreal_ofReal
-      exact hfm'
-    · apply Measurable.ennreal_toReal
-      apply Measurable.lintegral_kernel
-      apply Measurable.ennreal_ofReal
-      exact hfm'.neg
-  -- Now compose with toLp
-  have h_eq : (fun a => ∫ x, f x ∂ κ a) = fun a => WithLp.toLp 2 ((∫ x, f x ∂ κ a).ofLp) := by
+  apply measurable_pi_iff.mpr
+  intro i
+  have : (fun a => (∫ x, f x ∂ κ a) i) =
+    (fun a => (∫⁻ x, ENNReal.ofReal (f x i) ∂ (κ a)).toReal) - fun a => (∫⁻ x, ENNReal.ofReal (-f x i) ∂ κ a).toReal := by
     ext a
-    rfl
-  rw [h_eq]
-  exact (WithLp.measurable_toLp 2 _).comp h_ofLp_meas
+    simp
+    have := ContinuousLinearMap.integral_comp_comm (𝕜 := ℝ) (F := ℝ) (L := EuclideanSpace.proj i) (φ := f) (μ := κ a) ?_
+    simp at this
+    rw [←this]
+    rw [integral_eq_lintegral_pos_part_sub_lintegral_neg_part]
+    apply (integrable_pi_iff_euclidean f (κ a)).mpr
+    exact hf a
+    exact hf a
+  rw [this]
+  apply Measurable.sub
+  apply Measurable.ennreal_toReal
+  apply Measurable.lintegral_kernel
+  apply Measurable.ennreal_ofReal
+  apply measurable_pi_iff.mp
+  exact hfm
+  apply Measurable.ennreal_toReal
+  apply Measurable.lintegral_kernel
+  apply Measurable.ennreal_ofReal
+  apply Measurable.neg
+  apply measurable_pi_iff.mp
+  exact hfm
 
 theorem bind_condExp_eq_of_condExp_eq
   {α β : Type*} [MeasurableSpace α] {m m₀ : MeasurableSpace β}

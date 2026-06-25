@@ -17,9 +17,8 @@ import Mathlib.Order.Restriction
 import Mathlib.MeasureTheory.MeasurableSpace.Defs
 import Mathlib.MeasureTheory.MeasurableSpace.Constructions
 
-import Mathlib.Algebra.Order.Ring.Basic
-
 import RLTheory.Defs
+import RLTheory.Data.Real.Basic
 import RLTheory.Analysis.Normed.Group.Basic
 import RLTheory.StochasticApproximation.Lyapunov
 import RLTheory.StochasticApproximation.Iterates
@@ -144,7 +143,7 @@ theorem fundamental_inequality
         intro n
         have : 0 < α n := by apply hαpos
         have hineq := hL (x n - z) (x (n + 1) - z)
-        simp at hineq
+        simp [-PiLp.inner_apply] at hineq
 
         have : x (n + 1) - x n =
           (α n) • (f (x n) - x n) + e₁ n + e₂ n := by
@@ -175,11 +174,11 @@ theorem fundamental_inequality
         grw [hC₄ n]
         grw [hC₅ (x n)]
         simp_rw [mul_pow]
-        grw [add_sq_le]
+        grw [add_sq_le_sq_add_sq]
         simp_rw [Real.sq_sqrt (hEnergy.nonneg (x n - z))]
         simp_rw [←mul_assoc, mul_add, ←add_assoc]
         simp_rw [←mul_assoc]
-        simp
+        simp [-PiLp.inner_apply]
         have : C₆ * √(φ (x n - z)) * C₁ * C₄ * α n ^ 2 * C₅ * √(φ (x n - z))
           = C₆ * C₁ * C₄ * C₅ * (α n) ^ 2 * φ (x n - z) := by
           rw [mul_comm]
@@ -188,18 +187,11 @@ theorem fundamental_inequality
           rw [Real.mul_self_sqrt (hEnergy.nonneg (x n - z))]
           ring
         rw [this]
-        have sqrt_le : √(φ (x n - z)) ≤ 1 + φ (x n - z) := by
-          set s := √(φ (x n - z)) with hs_def
-          have hs_nonneg : 0 ≤ s := Real.sqrt_nonneg _
-          have hs_sq : s ^ 2 = φ (x n - z) := Real.sq_sqrt (hEnergy.nonneg _)
-          have hsq := sq_nonneg (s - 1)
-          rw [sub_sq, hs_sq, one_pow, mul_one] at hsq
-          nlinarith [sq_nonneg s]
-        grw [sqrt_le]
+        grw [sqrt_le_one_add (hEnergy.nonneg (x n - z))]
         simp_rw [mul_comm C₆]
         simp_rw [add_mul, ←add_assoc]
         simp_rw [←pow_mul]
-        simp
+        simp [-PiLp.inner_apply]
         simp_rw [←neg_mul]
 
         simp_rw [mul_right_comm (b := α n ^ 2)]
