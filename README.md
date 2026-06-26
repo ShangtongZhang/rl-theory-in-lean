@@ -24,16 +24,6 @@ It is recommended to use this project with the Lean 4 extension of VSCode.
     journal={arXiv preprint arXiv:2511.03618}
 }
 ```
-## Paper
-[Towards Formalizing Reinforcement Learning Theory](https://arxiv.org/abs/2511.03618)  
-```bibtex
-@article{zhang2025formalizing,
-    title={Towards Formalizing Reinforcement Learning Theory},
-    author={Shangtong Zhang},
-    year={2025},
-    journal={arXiv preprint arXiv:2511.03618}
-}
-```
 
 ## Main Results 
 
